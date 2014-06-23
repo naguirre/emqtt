@@ -1,9 +1,14 @@
-AC_INIT(ecore-mqtt, 0.0.1, aguirre.nicolas@gmail.com)
+AC_INIT(ecore-mqtt, 0.1.0, aguirre.nicolas@gmail.com)
 AC_PREREQ(2.52)
 AC_CONFIG_SRCDIR(configure.ac)
 
 AM_INIT_AUTOMAKE(1.6 dist-bzip2)
 AM_CONFIG_HEADER(config.h)
+
+version_info="0:1:0"
+release_info="1"
+AC_SUBST([version_info])
+AC_SUBST([release_info])
 
 AC_C_BIGENDIAN
 AC_ISC_POSIX
@@ -25,4 +30,6 @@ PKG_CHECK_MODULES([ECORE_MQTT], [
 
 AC_OUTPUT([
 Makefile
+src/Makefile
+src/lib/Makefile
 ])
