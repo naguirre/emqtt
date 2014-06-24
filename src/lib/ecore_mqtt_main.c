@@ -409,8 +409,8 @@ _mqtt_ecore_conn_data(void *data, int type EINA_UNUSED, Ecore_Con_Event_Client_D
         resp.header.len = 0x03;
         resp.header.msg_type = ECORE_MQTTSN_CONNACK;
         resp.ret_code = ECORE_MQTT_SN_RETURN_CODE_ACCEPTED;
-
-	ecore_con_client_send(ev->client, (char*)&resp, sizeof(resp));
+	
+	ecore_con_client_send(ev->client, &resp, sizeof(resp));
 	ecore_con_client_flush(ev->client);
       }
       break;
@@ -515,6 +515,18 @@ _mqtt_ecore_conn_data(void *data, int type EINA_UNUSED, Ecore_Con_Event_Client_D
 
       }
       break;
+    case ECORE_MQTTSN_DISCONNECT:
+      {
+	Ecore_Mqtt_Sn_Disconnect_Msg resp;
+	
+	resp.header.len = 2;
+	resp.header.msg_type = ECORE_MQTTSN_DISCONNECT;
+
+        ecore_con_client_send(ev->client, &resp, resp.header.len);
+        ecore_con_client_flush(ev->client);
+        break;
+
+      }
     default:
       printf("Unknown message\n");
       break;
