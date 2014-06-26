@@ -6,13 +6,13 @@ AM_CPPFLAGS = \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
 -DPACKAGE_DATA_DIR=\"$(datadir)\" \
 -I$(top_builddir)/src/lib \
-@ECORE_MQTT_CFLAGS@
+@EMQTT_CFLAGS@
 
-bin_PROGRAMS = ecore_mqtt_sn_broker
+bin_PROGRAMS = emqtt_sn_broker
 
-ecore_mqtt_sn_broker_SOURCES = \
-ecore_mqtt_sn_broker.c
+emqtt_sn_broker_SOURCES = \
+emqtt_sn_broker.c
 
-ecore_mqtt_sn_broker_LDADD = \
-@ECORE_MQTT_LIBS@ \
-$(top_builddir)/src/lib/libecore_mqtt.la
+emqtt_sn_broker_LDADD = \
+@EMQTT_LIBS@ \
+$(top_builddir)/src/lib/libemqtt.la

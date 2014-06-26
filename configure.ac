@@ -23,7 +23,7 @@ define([AC_LIBTOOL_LANG_CXX_CONFIG], [:])dnl
 define([AC_LIBTOOL_LANG_F77_CONFIG], [:])dnl
 AC_PROG_LIBTOOL
 
-PKG_CHECK_MODULES([ECORE_MQTT], [
+PKG_CHECK_MODULES([EMQTT], [
    ecore >= 1.2,
    ecore-con >= 1.2
 ])
