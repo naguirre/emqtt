@@ -1,89 +1,94 @@
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
+#define READBUFSIZ 65536
 
 #include "EMqtt.h"
 
-typedef struct _EMQTTSN_Msg_Desc EMQTTSN_Msg_Desc;
-typedef enum _EMQTTSN_MSG_TYPE EMQTTSN_MSG_TYPE;
-typedef struct _EMqttSn_Subscriber EMqttSn_Subscriber;
-typedef struct _EMqttSn_Topic EMqttSn_Topic;
+typedef struct _EMqtt_Sn_Msg_Desc EMqtt_Sn_Msg_Desc;
+typedef enum _EMqtt_Sn_MSG_TYPE EMqtt_Sn_MSG_TYPE;
+typedef struct _EMqtt_Sn_Subscriber EMqtt_Sn_Subscriber;
+typedef struct _EMqtt_Sn_Topic EMqtt_Sn_Topic;
 typedef struct _Mqtt_Client_Data Mqtt_Client_Data;
 
-enum _EMQTTSN_MSG_TYPE
+enum _EMqtt_Sn_MSG_TYPE
 {
-    EMQTTSN_ADVERTISE,
-    EMQTTSN_SEARCHGW,
-    EMQTTSN_GWINFO,
-    EMQTTSN_RESERVED1,
-    EMQTTSN_CONNECT,
-    EMQTTSN_CONNACK,
-    EMQTTSN_WILLTOPICREQ,
-    EMQTTSN_WILLTOPIC,
-    EMQTTSN_WILLMSGREQ,
-    EMQTTSN_WILLMSG,
-    EMQTTSN_REGISTER,
-    EMQTTSN_REGACK,
-    EMQTTSN_PUBLISH,
-    EMQTTSN_PUBACK,
-    EMQTTSN_PUBCOMP,
-    EMQTTSN_PUBREC,
-    EMQTTSN_PUBREL,
-    EMQTTSN_RESERVED2,
-    EMQTTSN_SUBSCRIBE,
-    EMQTTSN_SUBACK,
-    EMQTTSN_UNSUBSCRIBE,
-    EMQTTSN_UNSUBACK,
-    EMQTTSN_PINGREQ,
-    EMQTTSN_PINGRESP,
-    EMQTTSN_DISCONNECT,
-    EMQTTSN_RESERVED3,
-    EMQTTSN_WILLTOPICUPD,
-    EMQTTSN_WILLTOPICRESP,
-    EMQTTSN_WILLMSGUPD,
-    EMQTTSN_WILLMSGRESP
+    EMqtt_Sn_ADVERTISE,
+    EMqtt_Sn_SEARCHGW,
+    EMqtt_Sn_GWINFO,
+    EMqtt_Sn_RESERVED1,
+    EMqtt_Sn_CONNECT,
+    EMqtt_Sn_CONNACK,
+    EMqtt_Sn_WILLTOPICREQ,
+    EMqtt_Sn_WILLTOPIC,
+    EMqtt_Sn_WILLMSGREQ,
+    EMqtt_Sn_WILLMSG,
+    EMqtt_Sn_REGISTER,
+    EMqtt_Sn_REGACK,
+    EMqtt_Sn_PUBLISH,
+    EMqtt_Sn_PUBACK,
+    EMqtt_Sn_PUBCOMP,
+    EMqtt_Sn_PUBREC,
+    EMqtt_Sn_PUBREL,
+    EMqtt_Sn_RESERVED2,
+    EMqtt_Sn_SUBSCRIBE,
+    EMqtt_Sn_SUBACK,
+    EMqtt_Sn_UNSUBSCRIBE,
+    EMqtt_Sn_UNSUBACK,
+    EMqtt_Sn_PINGREQ,
+    EMqtt_Sn_PINGRESP,
+    EMqtt_Sn_DISCONNECT,
+    EMqtt_Sn_RESERVED3,
+    EMqtt_Sn_WILLTOPICUPD,
+    EMqtt_Sn_WILLTOPICRESP,
+    EMqtt_Sn_WILLMSGUPD,
+    EMqtt_Sn_WILLMSGRESP
 };
 
-struct _EMQTTSN_Msg_Desc
+struct _EMqtt_Sn_Msg_Desc
 {
-    EMQTTSN_MSG_TYPE val;
+    EMqtt_Sn_MSG_TYPE val;
     char *name;
 };
 
-const EMQTTSN_Msg_Desc mqttsn_msg_desc[] =
+const EMqtt_Sn_Msg_Desc mqttsn_msg_desc[] =
 {
-    {EMQTTSN_ADVERTISE,"ADVERTISE" },
-    {EMQTTSN_SEARCHGW,"SEARCHGW"},
-    {EMQTTSN_GWINFO,"GWINFO"},
-    {EMQTTSN_RESERVED1,"RESERVED1"},
-    {EMQTTSN_CONNECT,"CONNECT"},
-    {EMQTTSN_CONNACK,"CONNACK"},
-    {EMQTTSN_WILLTOPICREQ,"WILLTOPICREQ"},
-    {EMQTTSN_WILLTOPIC, "WILLTOPIC"},
-    {EMQTTSN_WILLMSGREQ,"WILLMSGREQ"},
-    {EMQTTSN_WILLMSG,"WILLMSG"},
-    {EMQTTSN_REGISTER,"REGISTER"},
-    {EMQTTSN_REGACK,"REGACK"},
-    {EMQTTSN_PUBLISH,"PUBLISH"},
-    {EMQTTSN_PUBACK,"PUBACK"},
-    {EMQTTSN_PUBCOMP,"PUBCOMP"},
-    {EMQTTSN_PUBREC,"PUBREC"},
-    {EMQTTSN_PUBREL,"PUBREL"},
-    {EMQTTSN_RESERVED2,"RESERVED2"},
-    {EMQTTSN_SUBSCRIBE,"SUBSCRIBE"},
-    {EMQTTSN_SUBACK,"SUBACK"},
-    {EMQTTSN_UNSUBSCRIBE,"UNSUBSCRIBE"},
-    {EMQTTSN_UNSUBACK,"UNSUBACK"},
-    {EMQTTSN_PINGREQ,"PINGREQ"},
-    {EMQTTSN_PINGRESP,"PINGRESP"},
-    {EMQTTSN_DISCONNECT,"DISCONNECT"},
-    {EMQTTSN_RESERVED3,"RESERVED3"},
-    {EMQTTSN_WILLTOPICUPD,"WILLTOPICUPD"},
-    {EMQTTSN_WILLTOPICRESP,"WILLTOPICRESP"},
-    {EMQTTSN_WILLMSGUPD,"WILLMSGUPD"},
-    {EMQTTSN_WILLMSGRESP, "WILLMSGRESP"},
+    {EMqtt_Sn_ADVERTISE,"ADVERTISE" },
+    {EMqtt_Sn_SEARCHGW,"SEARCHGW"},
+    {EMqtt_Sn_GWINFO,"GWINFO"},
+    {EMqtt_Sn_RESERVED1,"RESERVED1"},
+    {EMqtt_Sn_CONNECT,"CONNECT"},
+    {EMqtt_Sn_CONNACK,"CONNACK"},
+    {EMqtt_Sn_WILLTOPICREQ,"WILLTOPICREQ"},
+    {EMqtt_Sn_WILLTOPIC, "WILLTOPIC"},
+    {EMqtt_Sn_WILLMSGREQ,"WILLMSGREQ"},
+    {EMqtt_Sn_WILLMSG,"WILLMSG"},
+    {EMqtt_Sn_REGISTER,"REGISTER"},
+    {EMqtt_Sn_REGACK,"REGACK"},
+    {EMqtt_Sn_PUBLISH,"PUBLISH"},
+    {EMqtt_Sn_PUBACK,"PUBACK"},
+    {EMqtt_Sn_PUBCOMP,"PUBCOMP"},
+    {EMqtt_Sn_PUBREC,"PUBREC"},
+    {EMqtt_Sn_PUBREL,"PUBREL"},
+    {EMqtt_Sn_RESERVED2,"RESERVED2"},
+    {EMqtt_Sn_SUBSCRIBE,"SUBSCRIBE"},
+    {EMqtt_Sn_SUBACK,"SUBACK"},
+    {EMqtt_Sn_UNSUBSCRIBE,"UNSUBSCRIBE"},
+    {EMqtt_Sn_UNSUBACK,"UNSUBACK"},
+    {EMqtt_Sn_PINGREQ,"PINGREQ"},
+    {EMqtt_Sn_PINGRESP,"PINGRESP"},
+    {EMqtt_Sn_DISCONNECT,"DISCONNECT"},
+    {EMqtt_Sn_RESERVED3,"RESERVED3"},
+    {EMqtt_Sn_WILLTOPICUPD,"WILLTOPICUPD"},
+    {EMqtt_Sn_WILLTOPICRESP,"WILLTOPICRESP"},
+    {EMqtt_Sn_WILLMSGUPD,"WILLMSGUPD"},
+    {EMqtt_Sn_WILLMSGRESP, "WILLMSGRESP"},
 };
 
-struct _EMqttSn_Server
+struct _EMqtt_Sn_Server
 {
     const char *addr;
     unsigned short port;
@@ -91,6 +96,15 @@ struct _EMqttSn_Server
     Eina_List *topics;
     uint16_t last_topic;
     int fd;
+};
+
+struct _EMqtt_Sn_Client
+{
+    const char *addr;
+    unsigned short port;
+    int fd;
+    struct sockaddr server_addr;
+    const char *name;
 };
 
 struct _Mqtt_Client_Data
@@ -101,244 +115,244 @@ struct _Mqtt_Client_Data
 
 };
 
-struct _EMqttSn_Topic
+struct _EMqtt_Sn_Topic
 {
     const char *name;
     uint16_t id;
 };
 
-struct _EMqttSn_Subscriber
+struct _EMqtt_Sn_Subscriber
 {
-    EMqttSn_Topic *topic;
+    EMqtt_Sn_Topic *topic;
     struct sockaddr_in6 client_addr;
 };
 
 
-typedef enum _EMqttSN_RETURN_CODE EMqttSN_RETURN_CODE;
-typedef struct _EMqttSn_Small_Header EMqttSn_Small_Header;
-typedef struct _EMqttSn_Advertise_Msg EMqttSn_Advertise_Msg;
-typedef struct _EMqttSn_Searchgw_Msg EMqttSn_Searchgw_Msg;
-typedef struct _EMqttSn_Gwinfo_Msg EMqttSn_Gwinfo_Msg;
-typedef struct _EMqttSn_Connect_Msg EMqttSn_Connect_Msg;
-typedef struct _EMqttSn_Connack_Msg EMqttSn_Connack_Msg;
-typedef struct _EMqttSn_Willtopicreq_Msg EMqttSn_Willtopicreq_Msg;
-typedef struct _EMqttSn_Willtopic_Msg EMqttSn_Willtopic_Msg;
-typedef struct _EMqttSn_Willmsgreq_Msg EMqttSn_Willmsgreq_Msg;
-typedef struct _EMqttSn_Willmsg_Msg EMqttSn_Willmsg_Msg;
-typedef struct _EMqttSn_Register_Msg EMqttSn_Register_Msg;
-typedef struct _EMqttSn_Regack_Msg EMqttSn_Regack_Msg;
-typedef struct _EMqttSn_Publish_Msg EMqttSn_Publish_Msg;
-typedef struct _EMqttSn_Puback_Msg EMqttSn_Puback_Msg;
-typedef struct _EMqttSn_Pubcomp_Msg EMqttSn_Pubcomp_Msg;
-typedef struct _EMqttSn_Pubrec_Msg EMqttSn_Pubrec_Msg;
-typedef struct _EMqttSn_Pubrel_Msg EMqttSn_Pubrel_Msg;
-typedef struct _EMqttSn_Subscribe_Msg EMqttSn_Subscribe_Msg;
-typedef struct _EMqttSn_Suback_Msg EMqttSn_Suback_Msg;
-typedef struct _EMqttSn_Unsbuback_Msg EMqttSn_Unsbuback_Msg;
-typedef struct _EMqttSn_Pingreq_Msg EMqttSn_Pingreq_Msg;
-typedef struct _EMqttSn_Pingresp_Msg EMqttSn_Pingresp_Msg;
-typedef struct _EMqttSn_Disconnect_Msg EMqttSn_Disconnect_Msg;
-typedef struct _EMqttSn_Willtopicupd_Msg EMqttSn_Willtopicupd_Msg;
-typedef struct _EMqttSn_Willtopicresp_Msg EMqttSn_Willtopicresp_Msg;
-typedef struct _EMqttSn_Willmsgupd_Msg EMqttSn_Willmsgupd_Msg;
-typedef struct _EMqttSn_Willmsgresp_Msg EMqttSn_Willmsgresp_Msg;
+typedef enum _EMqtt_Sn_RETURN_CODE EMqtt_Sn_RETURN_CODE;
+typedef struct _EMqtt_Sn_Small_Header EMqtt_Sn_Small_Header;
+typedef struct _EMqtt_Sn_Advertise_Msg EMqtt_Sn_Advertise_Msg;
+typedef struct _EMqtt_Sn_Searchgw_Msg EMqtt_Sn_Searchgw_Msg;
+typedef struct _EMqtt_Sn_Gwinfo_Msg EMqtt_Sn_Gwinfo_Msg;
+typedef struct _EMqtt_Sn_Connect_Msg EMqtt_Sn_Connect_Msg;
+typedef struct _EMqtt_Sn_Connack_Msg EMqtt_Sn_Connack_Msg;
+typedef struct _EMqtt_Sn_Willtopicreq_Msg EMqtt_Sn_Willtopicreq_Msg;
+typedef struct _EMqtt_Sn_Willtopic_Msg EMqtt_Sn_Willtopic_Msg;
+typedef struct _EMqtt_Sn_Willmsgreq_Msg EMqtt_Sn_Willmsgreq_Msg;
+typedef struct _EMqtt_Sn_Willmsg_Msg EMqtt_Sn_Willmsg_Msg;
+typedef struct _EMqtt_Sn_Register_Msg EMqtt_Sn_Register_Msg;
+typedef struct _EMqtt_Sn_Regack_Msg EMqtt_Sn_Regack_Msg;
+typedef struct _EMqtt_Sn_Publish_Msg EMqtt_Sn_Publish_Msg;
+typedef struct _EMqtt_Sn_Puback_Msg EMqtt_Sn_Puback_Msg;
+typedef struct _EMqtt_Sn_Pubcomp_Msg EMqtt_Sn_Pubcomp_Msg;
+typedef struct _EMqtt_Sn_Pubrec_Msg EMqtt_Sn_Pubrec_Msg;
+typedef struct _EMqtt_Sn_Pubrel_Msg EMqtt_Sn_Pubrel_Msg;
+typedef struct _EMqtt_Sn_Subscribe_Msg EMqtt_Sn_Subscribe_Msg;
+typedef struct _EMqtt_Sn_Suback_Msg EMqtt_Sn_Suback_Msg;
+typedef struct _EMqtt_Sn_Unsbuback_Msg EMqtt_Sn_Unsbuback_Msg;
+typedef struct _EMqtt_Sn_Pingreq_Msg EMqtt_Sn_Pingreq_Msg;
+typedef struct _EMqtt_Sn_Pingresp_Msg EMqtt_Sn_Pingresp_Msg;
+typedef struct _EMqtt_Sn_Disconnect_Msg EMqtt_Sn_Disconnect_Msg;
+typedef struct _EMqtt_Sn_Willtopicupd_Msg EMqtt_Sn_Willtopicupd_Msg;
+typedef struct _EMqtt_Sn_Willtopicresp_Msg EMqtt_Sn_Willtopicresp_Msg;
+typedef struct _EMqtt_Sn_Willmsgupd_Msg EMqtt_Sn_Willmsgupd_Msg;
+typedef struct _EMqtt_Sn_Willmsgresp_Msg EMqtt_Sn_Willmsgresp_Msg;
 
-enum _EMqttSN_RETURN_CODE
+enum _EMqtt_Sn_RETURN_CODE
 {
-    EMqttSN_RETURN_CODE_ACCEPTED,
-    EMqttSN_RETURN_CODE_CONGESTION,
-    EMqttSN_RETURN_CODE_INVALID_TOPIC_ID,
-    EMqttSN_RETURN_CODE_NOT_SUPPORTED,
-    EMqttSN_RETURN_CODE_SENTINEL,
+    EMqtt_Sn_RETURN_CODE_ACCEPTED,
+    EMqtt_Sn_RETURN_CODE_CONGESTION,
+    EMqtt_Sn_RETURN_CODE_INVALID_TOPIC_ID,
+    EMqtt_Sn_RETURN_CODE_NOT_SUPPORTED,
+    EMqtt_Sn_RETURN_CODE_SENTINEL,
 };
 
-struct _EMqttSn_Small_Header
+struct _EMqtt_Sn_Small_Header
 {
     uint8_t len;
     uint8_t msg_type;
 } __attribute__((packed));
 
-struct _EMqttSn_Advertise_Msg
+struct _EMqtt_Sn_Advertise_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t gw_id;
     uint16_t duration;
 } __attribute__((packed));
 
-struct _EMqttSn_Searchgw_Msg
+struct _EMqtt_Sn_Searchgw_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t radius;
 } __attribute__((packed));
 
-struct _EMqttSn_Gwinfo_Msg
+struct _EMqtt_Sn_Gwinfo_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t radius;
     char *data;
 } __attribute__((packed));
 
-struct _EMqttSn_Connect_Msg
+struct _EMqtt_Sn_Connect_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t flags;
     uint8_t protocol_id;
     uint16_t duration;
 } __attribute__((packed));
 
 
-struct _EMqttSn_Connack_Msg
+struct _EMqtt_Sn_Connack_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t ret_code;
 } __attribute__((packed));
 
 
-struct _EMqttSn_Willtopicreq_Msg
+struct _EMqtt_Sn_Willtopicreq_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
 } __attribute__((packed));
 
-struct _EMqttSn_Willtopic_Msg
+struct _EMqtt_Sn_Willtopic_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t flags;
     char *will_topic;
 } __attribute__((packed));
 
-struct _EMqttSn_Willmsgreq_Msg
+struct _EMqtt_Sn_Willmsgreq_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
 } __attribute__((packed));
 
-struct _EMqttSn_Willmsg_Msg
+struct _EMqtt_Sn_Willmsg_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     char *will_msg;
 } __attribute__((packed));
 
 
-struct _EMqttSn_Register_Msg
+struct _EMqtt_Sn_Register_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint16_t topic_id;
     uint16_t msg_id;
 } __attribute__((packed));
 
-struct _EMqttSn_Regack_Msg
+struct _EMqtt_Sn_Regack_Msg
 {
-    EMqttSn_Small_Header header;
-    uint16_t topic_id;
-    uint16_t msg_id;
-    uint8_t ret_code;
-} __attribute__((packed));
-
-
-struct _EMqttSn_Publish_Msg
-{
-    EMqttSn_Small_Header header;
-    uint8_t flags;
-    uint16_t topic_id;
-    uint16_t msg_id;
-} __attribute__((packed));
-
-struct _EMqttSn_Puback_Msg
-{
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint16_t topic_id;
     uint16_t msg_id;
     uint8_t ret_code;
 } __attribute__((packed));
 
 
-struct _EMqttSn_Pubrec_Msg
+struct _EMqtt_Sn_Publish_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
+    uint8_t flags;
+    uint16_t topic_id;
     uint16_t msg_id;
 } __attribute__((packed));
 
-struct _EMqttSn_Pubrel_Msg
+struct _EMqtt_Sn_Puback_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
+    uint16_t topic_id;
+    uint16_t msg_id;
+    uint8_t ret_code;
+} __attribute__((packed));
+
+
+struct _EMqtt_Sn_Pubrec_Msg
+{
+    EMqtt_Sn_Small_Header header;
     uint16_t msg_id;
 } __attribute__((packed));
 
-struct _EMqttSn_Pubcomp_Msg
+struct _EMqtt_Sn_Pubrel_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint16_t msg_id;
 } __attribute__((packed));
 
-struct _EMqttSn_Subscribe_Msg
+struct _EMqtt_Sn_Pubcomp_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
+    uint16_t msg_id;
+} __attribute__((packed));
+
+struct _EMqtt_Sn_Subscribe_Msg
+{
+    EMqtt_Sn_Small_Header header;
     uint8_t flags;
     uint16_t msg_id;
     uint16_t topic_id;
 } __attribute__((packed));
 
-struct _EMqttSn_Suback_Msg
+struct _EMqtt_Sn_Suback_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t flags;
     uint16_t topic_id;
     uint16_t msg_id;
     uint8_t ret_code;
 } __attribute__((packed));
 
-struct _EMqttSn_Unubscribe_Msg
+struct _EMqtt_Sn_Unubscribe_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t flags;
     uint16_t msg_id;
     char *topic_name;
 } __attribute__((packed));
 
-struct _EMqttSn_Unsuback_Msg
+struct _EMqtt_Sn_Unsuback_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint16_t msg_id;
 } __attribute__((packed));
 
-struct _EMqttSn_Pingreq_Msg
+struct _EMqtt_Sn_Pingreq_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     char* client_id;
 } __attribute__((packed));
 
-struct _EMqttSn_Pingresp_Msg
+struct _EMqtt_Sn_Pingresp_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
 } __attribute__((packed));
 
-struct _EMqttSn_Disconnect_Msg
+struct _EMqtt_Sn_Disconnect_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint16_t duration;
 } __attribute__((packed));
 
-struct _EMqttSn_Willtopicupd_Msg
+struct _EMqtt_Sn_Willtopicupd_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t flags;
     char* will_topic;
 } __attribute__((packed));
 
-struct _EMqttSn_Willmsgcupd_Msg
+struct _EMqtt_Sn_Willmsgcupd_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     char* will_msg;
 } __attribute__((packed));
 
-struct _EMqttSn_Willtopicresp_Msg
+struct _EMqtt_Sn_Willtopicresp_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t ret_code;
 } __attribute__((packed));
 
-struct _EMqttSn_Willmsgresp_Msg
+struct _EMqtt_Sn_Willmsgresp_Msg
 {
-    EMqttSn_Small_Header header;
+    EMqtt_Sn_Small_Header header;
     uint8_t ret_code;
 } __attribute__((packed));
 
@@ -352,11 +366,11 @@ struct _Server
     int sdata;
 };
 
-static EMqttSn_Topic *
-_mqtt_topic_name_get(const char *topic_name, EMqttSn_Server *srv)
+static EMqtt_Sn_Topic *
+_mqtt_topic_name_get(const char *topic_name, EMqtt_Sn_Server *srv)
 {
     Eina_List *l;
-    EMqttSn_Topic *topic;
+    EMqtt_Sn_Topic *topic;
 
     EINA_LIST_FOREACH(srv->topics, l, topic)
     {
@@ -366,11 +380,11 @@ _mqtt_topic_name_get(const char *topic_name, EMqttSn_Server *srv)
     return NULL;
 }
 
-static EMqttSn_Topic *
-_mqtt_topic_id_get(uint16_t topic_id, EMqttSn_Server *srv)
+static EMqtt_Sn_Topic *
+_mqtt_topic_id_get(uint16_t topic_id, EMqtt_Sn_Server *srv)
 {
     Eina_List *l;
-    EMqttSn_Topic *topic = NULL;
+    EMqtt_Sn_Topic *topic = NULL;
 
     EINA_LIST_FOREACH(srv->topics, l, topic)
     {
@@ -381,10 +395,10 @@ _mqtt_topic_id_get(uint16_t topic_id, EMqttSn_Server *srv)
 }
 
 static Eina_Bool
-_mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, EMqttSn_Server *srv)
+_mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, EMqtt_Sn_Server *srv)
 {
     Eina_List *l;
-    EMqttSn_Subscriber *subscriber;
+    EMqtt_Sn_Subscriber *subscriber;
 
     EINA_LIST_FOREACH(srv->subscribers, l, subscriber)
     {
@@ -396,10 +410,10 @@ _mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, EMqttSn_
 }
 
 static Eina_Bool
-_mqtt_subscriber_id_exists(Mqtt_Client_Data *cdata, uint16_t id, EMqttSn_Server *srv)
+_mqtt_subscriber_id_exists(Mqtt_Client_Data *cdata, uint16_t id, EMqtt_Sn_Server *srv)
 {
     Eina_List *l;
-    EMqttSn_Subscriber *subscriber;
+    EMqtt_Sn_Subscriber *subscriber;
 
     EINA_LIST_FOREACH(srv->subscribers, l, subscriber)
     {
@@ -410,12 +424,12 @@ _mqtt_subscriber_id_exists(Mqtt_Client_Data *cdata, uint16_t id, EMqttSn_Server 
     return EINA_FALSE;
 }
 
-static EMqttSn_Topic *
-_mqtt_topic_new(const char *name, EMqttSn_Server *srv)
+static EMqtt_Sn_Topic *
+_mqtt_topic_new(const char *name, EMqtt_Sn_Server *srv)
 {
-    EMqttSn_Topic *topic;
+    EMqtt_Sn_Topic *topic;
 
-    topic = calloc(1, sizeof(EMqttSn_Topic));
+    topic = calloc(1, sizeof(EMqtt_Sn_Topic));
     topic->id = srv->last_topic++;
     topic->name = eina_stringshare_add(name);
     return topic;
@@ -423,41 +437,41 @@ _mqtt_topic_new(const char *name, EMqttSn_Server *srv)
 
 
 static void
-_mqtt_sn_connect_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 {
-    EMqttSn_Connect_Msg *msg;
-    EMqttSn_Connack_Msg resp;
+    EMqtt_Sn_Connect_Msg *msg;
+    EMqtt_Sn_Connack_Msg resp;
     char *client_id;
     size_t s;
 
-    msg = (EMqttSn_Connect_Msg *)cdata->data;
-    s = msg->header.len - (sizeof(EMqttSn_Connect_Msg));
+    msg = (EMqtt_Sn_Connect_Msg *)cdata->data;
+    s = msg->header.len - (sizeof(EMqtt_Sn_Connect_Msg));
     client_id = calloc(1, s + 1);
-    memcpy(client_id, cdata->data + sizeof(EMqttSn_Connect_Msg) , s);
+    memcpy(client_id, cdata->data + sizeof(EMqtt_Sn_Connect_Msg) , s);
 
     resp.header.len = 0x03;
-    resp.header.msg_type = EMQTTSN_CONNACK;
-    resp.ret_code = EMqttSN_RETURN_CODE_ACCEPTED;
+    resp.header.msg_type = EMqtt_Sn_CONNACK;
+    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
 
     sendto(srv->fd, &resp, sizeof(resp), 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static void
-_mqtt_sn_register_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 {
-    EMqttSn_Register_Msg *msg;
-    EMqttSn_Regack_Msg resp;
-    EMqttSn_Topic *topic;
+    EMqtt_Sn_Register_Msg *msg;
+    EMqtt_Sn_Regack_Msg resp;
+    EMqtt_Sn_Topic *topic;
     Eina_List *l;
     char *topic_name;
     size_t s;
     Eina_Bool found = EINA_FALSE;
 
-    msg = (EMqttSn_Register_Msg*)cdata->data;
+    msg = (EMqtt_Sn_Register_Msg*)cdata->data;
 
-    s = msg->header.len - (sizeof(EMqttSn_Register_Msg));
+    s = msg->header.len - (sizeof(EMqtt_Sn_Register_Msg));
     topic_name = calloc(1, s + 1);
-    memcpy(topic_name, cdata->data + sizeof(EMqttSn_Register_Msg) , s);
+    memcpy(topic_name, cdata->data + sizeof(EMqtt_Sn_Register_Msg) , s);
 
     topic = _mqtt_topic_name_get(topic_name, srv);
     if (!topic)
@@ -466,42 +480,42 @@ _mqtt_sn_register_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
         topic = _mqtt_topic_new(topic_name, srv);
         srv->topics = eina_list_append(srv->topics, topic);
         resp.topic_id = htons(topic->id);
-        resp.ret_code = EMqttSN_RETURN_CODE_ACCEPTED;
+        resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
     }
     else
     {
         resp.topic_id = htons(topic->id);
-        resp.ret_code = EMqttSN_RETURN_CODE_ACCEPTED;
+        resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
     }
 
-    resp.header.len = sizeof(EMqttSn_Regack_Msg);
-    resp.header.msg_type = EMQTTSN_REGACK;
+    resp.header.len = sizeof(EMqtt_Sn_Regack_Msg);
+    resp.header.msg_type = EMqtt_Sn_REGACK;
     resp.msg_id = msg->msg_id;
 
     sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static void
-_mqtt_sn_publish_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 {
-    EMqttSn_Publish_Msg *msg;
-    EMqttSn_Puback_Msg resp;
+    EMqtt_Sn_Publish_Msg *msg;
+    EMqtt_Sn_Puback_Msg resp;
     Eina_List *l;
-    EMqttSn_Subscriber *subscriber;
+    EMqtt_Sn_Subscriber *subscriber;
     char *data;
     size_t s;
 
-    msg = (EMqttSn_Publish_Msg*)cdata->data;
+    msg = (EMqtt_Sn_Publish_Msg*)cdata->data;
 
-    s = msg->header.len - (sizeof(EMqttSn_Publish_Msg));
+    s = msg->header.len - (sizeof(EMqtt_Sn_Publish_Msg));
     data = calloc(1, s + 1);
-    memcpy(data, cdata->data + sizeof(EMqttSn_Publish_Msg) , s);
+    memcpy(data, cdata->data + sizeof(EMqtt_Sn_Publish_Msg) , s);
 
-    resp.header.len = sizeof(EMqttSn_Puback_Msg);
-    resp.header.msg_type = EMQTTSN_PUBACK;
+    resp.header.len = sizeof(EMqtt_Sn_Puback_Msg);
+    resp.header.msg_type = EMqtt_Sn_PUBACK;
     resp.topic_id = msg->topic_id;
     resp.msg_id = msg->msg_id;
-    resp.ret_code = EMqttSN_RETURN_CODE_ACCEPTED;
+    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
 
 
     sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
@@ -518,41 +532,41 @@ _mqtt_sn_publish_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
 }
 
 static void
-_mqtt_sn_pingreq_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_pingreq_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 {
-    EMqttSn_Pingresp_Msg resp;
+    EMqtt_Sn_Pingresp_Msg resp;
 
     resp.header.len = 2;
-    resp.header.msg_type = EMQTTSN_PINGRESP;
+    resp.header.msg_type = EMqtt_Sn_PINGRESP;
 
     sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static void
-_mqtt_sn_disconnect_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_disconnect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 {
-    EMqttSn_Disconnect_Msg resp;
+    EMqtt_Sn_Disconnect_Msg resp;
 
     resp.header.len = 2;
-    resp.header.msg_type = EMQTTSN_DISCONNECT;
+    resp.header.msg_type = EMqtt_Sn_DISCONNECT;
 
     sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static void
-_mqtt_sn_subscribe_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 {
-    EMqttSn_Subscribe_Msg *msg;
-    EMqttSn_Suback_Msg resp;
+    EMqtt_Sn_Subscribe_Msg *msg;
+    EMqtt_Sn_Suback_Msg resp;
     uint8_t topic_id_type;
     char *topic_name = NULL;
     uint16_t topic_id;
     Eina_List *l;
-    EMqttSn_Subscriber *subscriber;
-    EMqttSn_Topic *topic;
+    EMqtt_Sn_Subscriber *subscriber;
+    EMqtt_Sn_Topic *topic;
     Eina_Bool found = EINA_FALSE;
 
-    msg = (EMqttSn_Subscribe_Msg *)cdata->data;
+    msg = (EMqtt_Sn_Subscribe_Msg *)cdata->data;
     topic_id_type = msg->flags & 0x03;
     switch(topic_id_type)
     {
@@ -561,9 +575,9 @@ _mqtt_sn_subscribe_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
         /* Topic name */
         size_t s;
 
-        s = msg->header.len - ((sizeof(EMqttSn_Subscribe_Msg) - sizeof(uint16_t)));
+        s = msg->header.len - ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t)));
         topic_name = calloc(1, s + 1);
-        memcpy(topic_name, cdata->data + sizeof(EMqttSn_Subscribe_Msg) - sizeof(uint16_t) , s);
+        memcpy(topic_name, cdata->data + sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t) , s);
     }
         break;
     case 1:
@@ -585,18 +599,18 @@ _mqtt_sn_subscribe_msg(EMqttSn_Server *srv, Mqtt_Client_Data *cdata)
 
     if (!_mqtt_subscriber_name_exists(cdata, topic_name, srv))
     {
-        subscriber = calloc(1, sizeof(EMqttSn_Subscriber));
+        subscriber = calloc(1, sizeof(EMqtt_Sn_Subscriber));
         subscriber->topic = topic;
         subscriber->client_addr = cdata->client_addr;
         srv->subscribers = eina_list_append(srv->subscribers, subscriber);
     }
 
-    resp.header.len = sizeof(EMqttSn_Suback_Msg);
-    resp.header.msg_type = EMQTTSN_SUBACK;
+    resp.header.len = sizeof(EMqtt_Sn_Suback_Msg);
+    resp.header.msg_type = EMqtt_Sn_SUBACK;
     resp.flags = 0x00;
     resp.topic_id = htons(topic->id);
     resp.msg_id = msg->msg_id;
-    resp.ret_code = EMqttSN_RETURN_CODE_ACCEPTED;
+    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
     sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
@@ -635,17 +649,17 @@ int emqtt_shutdown(void)
 static Eina_Bool
 _timer_cb(void *data)
 {
-    EMqttSn_Server *srv = data;
+    EMqtt_Sn_Server *srv = data;
     Eina_List *l;
-    EMqttSn_Subscriber *subscriber;
+    EMqtt_Sn_Subscriber *subscriber;
 
 
     printf("timer\n");
     EINA_LIST_FOREACH(srv->subscribers, l, subscriber)
     {
-        EMqttSn_Pingreq_Msg msg;
+        EMqtt_Sn_Pingreq_Msg msg;
         msg.header.len = 2;
-        msg.header.msg_type = EMQTTSN_PINGREQ;
+        msg.header.msg_type = EMqtt_Sn_PINGREQ;
 
         sendto(srv->fd, &msg, msg.header.len, 0, (struct sockaddr *)&subscriber->client_addr, sizeof(subscriber->client_addr));
 
@@ -655,8 +669,8 @@ _timer_cb(void *data)
 
 static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 {
-    EMqttSn_Server *srv = data;
-    EMqttSn_Small_Header *header;
+    EMqtt_Sn_Server *srv = data;
+    EMqtt_Sn_Small_Header *header;
     int i;
     char fmt[32];
     int fd;
@@ -677,7 +691,7 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     //sendto(sockfd,mesg,n,0,(struct sockaddr *)&cliaddr,sizeof(cliaddr));
 
 
-    header = (EMqttSn_Small_Header *)cdata->data;
+    header = (EMqtt_Sn_Small_Header *)cdata->data;
 
     d = cdata->data;
 
@@ -692,22 +706,22 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 
     switch(header->msg_type)
     {
-    case EMQTTSN_CONNECT:
+    case EMqtt_Sn_CONNECT:
         _mqtt_sn_connect_msg(srv, cdata);
         break;
-    case EMQTTSN_REGISTER:
+    case EMqtt_Sn_REGISTER:
         _mqtt_sn_register_msg(srv, cdata);
         break;
-    case EMQTTSN_PUBLISH:
+    case EMqtt_Sn_PUBLISH:
         _mqtt_sn_publish_msg(srv, cdata);
         break;
-    case EMQTTSN_PINGREQ:
+    case EMqtt_Sn_PINGREQ:
         _mqtt_sn_pingreq_msg(srv, cdata);
         break;
-    case EMQTTSN_SUBSCRIBE:
+    case EMqtt_Sn_SUBSCRIBE:
         _mqtt_sn_subscribe_msg(srv, cdata);
         break;
-    case EMQTTSN_DISCONNECT:
+    case EMqtt_Sn_DISCONNECT:
         _mqtt_sn_disconnect_msg(srv, cdata);
         break;
     default:
@@ -720,10 +734,51 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     return ECORE_CALLBACK_RENEW;
 }
 
-
-EMqttSn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
+static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 {
-    EMqttSn_Server *srv;
+    EMqtt_Sn_Client *client = data;
+    EMqtt_Sn_Small_Header *header;
+    int i;
+    char fmt[32];
+    int fd;
+    socklen_t len;
+    Mqtt_Client_Data *cdata;
+
+
+    char* d;
+    struct sockaddr_in6 cliaddr;
+
+    cdata = calloc(1, sizeof(Mqtt_Client_Data));
+
+    len = sizeof(cdata->client_addr);
+    cdata->len = recvfrom(client->fd, cdata->data,READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
+
+    printf("Receive %d bytes from %s\n", cdata->len, cdata->client_addr.sin6_addr);
+
+    header = (EMqtt_Sn_Small_Header *)cdata->data;
+
+    d = cdata->data;
+
+    printf("Receive Message : %s[%d]\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type);
+
+    // Header
+    if (header->len == 0x01)
+    {
+        printf("Error long header not handle yet !\n");
+        return ECORE_CALLBACK_RENEW;
+    }
+
+
+
+    free(cdata);
+
+    return ECORE_CALLBACK_RENEW;
+}
+
+
+EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
+{
+    EMqtt_Sn_Server *srv;
     struct sockaddr_in6 servaddr;
     int optval;
     int flags;
@@ -731,7 +786,7 @@ EMqttSn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
     if (!addr || !port)
         return NULL;
 
-    srv = calloc(1, sizeof(EMqttSn_Server));
+    srv = calloc(1, sizeof(EMqtt_Sn_Server));
     srv->addr = eina_stringshare_add(addr);
     srv->port = port;
     srv->topics = NULL;
@@ -766,7 +821,7 @@ EMqttSn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
 
 }
 
-void emqtt_sn_server_del(EMqttSn_Server *srv)
+void emqtt_sn_server_del(EMqtt_Sn_Server *srv)
 {
     if (!srv)
         return;
@@ -775,4 +830,114 @@ void emqtt_sn_server_del(EMqttSn_Server *srv)
         eina_stringshare_del(srv->addr);
 
     free(srv);
+}
+
+EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *client_name)
+{
+    EMqtt_Sn_Client *client;
+    int optval;
+    int flags;
+    struct addrinfo hints;
+    struct addrinfo *res, *it;
+    int ret;
+    int fd;
+    struct timeval tv;
+    char port_s[16];
+
+    if (!addr || !port)
+        return NULL;
+
+    client = calloc(1, sizeof(EMqtt_Sn_Client));
+    client->addr = eina_stringshare_add(addr);
+    client->port = port;
+    client->name = eina_stringshare_add(client_name);
+    client->fd = socket(PF_INET6, SOCK_DGRAM, 0);
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_ADDRCONFIG | AI_V4MAPPED;
+    hints.ai_protocol = 0;
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+
+    snprintf(port_s, sizeof(port_s), "%d", port);
+
+    ret =  getaddrinfo(client->addr, port_s, &hints, &res);
+    if (ret != 0)
+    {
+       printf("udpclient error for %s, %s: %s", client->addr, client->port, gai_strerror(ret));
+    }
+    else
+    {
+        printf("res : %s %s\n", res->ai_addr, res->ai_canonname);
+    }
+
+    for (it = res; it != NULL; it = it->ai_next)
+    {
+        fd = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
+        if (fd == -1)
+            continue;
+
+        if (connect(fd, it->ai_addr, it->ai_addrlen) == 0)
+            break;
+
+        close(fd);
+    }
+
+    if (it == NULL)
+    {
+        perror("Could not connect to remote host.\n");
+        return NULL;
+    }
+
+    client->fd = fd;
+    memcpy(&client->server_addr, it->ai_addr, sizeof(client->server_addr));
+    freeaddrinfo(res);
+
+    tv.tv_sec = 10;
+    tv.tv_usec = 0;
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+    {
+        perror("Error setting timeout on socket");
+    }
+
+    if (fcntl(client->fd, F_SETFL, O_NONBLOCK) < 0)
+      perror("setsockoption\n");
+    if (fcntl(client->fd, F_SETFD, FD_CLOEXEC) < 0)
+      perror("setsockoption\n");
+
+    if (setsockopt(client->fd, SOL_SOCKET, SO_REUSEADDR,
+                   (const void *)&optval, sizeof(optval)) < 0)
+      perror("setsockoption\n");
+
+    ecore_main_fd_handler_add(client->fd, ECORE_FD_READ, _mqtt_client_data_cb, client, NULL, NULL);
+
+    return client;
+
+}
+
+void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Connect_Cb connected_cb, void *data, double keepalive)
+{
+    char d[256];
+    EMqtt_Sn_Connect_Msg *msg;
+
+    if (!client)
+        return;
+
+    EMqtt_Sn_Small_Header header;
+    uint8_t flags;
+    uint8_t protocol_id;
+    uint16_t duration;
+
+    msg = (EMqtt_Sn_Connect_Msg *)d;
+    msg->header.msg_type = EMqtt_Sn_CONNECT;
+    msg->flags = 0;
+    msg->protocol_id = 1;
+    msg->duration = htons((uint16_t)keepalive);
+    snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
+    msg->header.len = sizeof(msg) + strlen(client->name);
+    send(client->fd, msg, msg->header.len, 0);
+    printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
 }

@@ -8,11 +8,18 @@ AM_CPPFLAGS = \
 -I$(top_builddir)/src/lib \
 @EMQTT_CFLAGS@
 
-bin_PROGRAMS = emqtt_sn_broker
+bin_PROGRAMS = emqtt_sn_broker emqtt_sn_sub
 
 emqtt_sn_broker_SOURCES = \
 emqtt_sn_broker.c
 
 emqtt_sn_broker_LDADD = \
+@EMQTT_LIBS@ \
+$(top_builddir)/src/lib/libemqtt.la
+
+emqtt_sn_sub_SOURCES = \
+emqtt_sn_sub.c
+
+emqtt_sn_sub_LDADD = \
 @EMQTT_LIBS@ \
 $(top_builddir)/src/lib/libemqtt.la
