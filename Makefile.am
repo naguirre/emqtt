@@ -7,3 +7,12 @@ MAINTAINERCLEANFILES = Makefile.in aclocal.m4 config.guess \
 		       ltconfig ltmain.sh missing mkinstalldirs \
 		       stamp-h.in acconfig.h depcomp config.h.in~
 
+EXTRA_DIST= \
+AUTHORS \
+COPYING \
+README \
+autogen.sh \
+emqtt.pc.in
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = emqtt.pc

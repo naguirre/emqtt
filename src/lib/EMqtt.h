@@ -6,10 +6,14 @@
 
 #include <Ecore.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* ifdef __cplusplus */
+
 typedef struct _EMqtt_Sn_Server EMqtt_Sn_Server;
 typedef struct _EMqtt_Sn_Client EMqtt_Sn_Client;
 
-typedef void (*EMqtt_Sn_Client_Connect_Cb) (EMqtt_Sn_Client *client);
+typedef void (*EMqtt_Sn_Client_Connect_Cb) (void *data, EMqtt_Sn_Client *client);
 
 int emqtt_init(void);
 int emqtt_shutdown(void);
@@ -25,6 +29,8 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
 
 void emqtt_sn_client_del(EMqtt_Sn_Client *srv);
 
-
+#ifdef __cplusplus
+}
+#endif /* ifdef __cplusplus */
 
 #endif

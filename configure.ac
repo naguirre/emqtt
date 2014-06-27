@@ -29,6 +29,7 @@ PKG_CHECK_MODULES([EMQTT], [
 ])
 
 AC_OUTPUT([
+emqtt.pc
 Makefile
 src/Makefile
 src/lib/Makefile

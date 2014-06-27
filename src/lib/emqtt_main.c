@@ -918,6 +918,8 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
 
 }
 
+
+
 void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Connect_Cb connected_cb, void *data, double keepalive)
 {
     char d[256];
@@ -940,4 +942,11 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
     msg->header.len = sizeof(msg) + strlen(client->name);
     send(client->fd, msg, msg->header.len, 0);
     printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
+}
+
+
+
+void emqtt_sn_client_subscribe((EMqtt_Sn_Client *client, char *topic, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb, void *data)
+{
+
 }
