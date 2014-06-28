@@ -105,6 +105,8 @@ struct _EMqtt_Sn_Client
     int fd;
     struct sockaddr server_addr;
     const char *name;
+    Ecore_Timer *keepalive_timer;
+    double keepalive;
 };
 
 struct _Mqtt_Client_Data
@@ -614,6 +616,37 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
+static Eina_Bool
+_mqtt_keepalive_timer_cb(void *data)
+{
+    EMqtt_Sn_Client *client = data;
+    EMqtt_Sn_Pingreq_Msg msg;
+
+    msg.header.len = 2;
+    msg.header.msg_type = EMqtt_Sn_PINGREQ;
+
+    send(client->fd, &msg, msg.header.len, 0);
+}
+
+static void
+_mqtt_sn_connack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
+{
+    EMqtt_Sn_Connack_Msg *msg;
+
+    msg = (EMqtt_Sn_Connack_Msg *)cdata->data;
+
+    if (msg->ret_code != EMqtt_Sn_RETURN_CODE_ACCEPTED)
+    {
+        printf("Error : connection not accepted by server\n");
+        return;
+    }
+
+    /* Client now accepted, create a timer to launch Ping request each keepalive seconds */
+    client->keepalive_timer = ecore_timer_add(client->keepalive, _mqtt_keepalive_timer_cb, client);
+
+
+
+}
 
 int emqtt_init(void)
 {
@@ -701,6 +734,7 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     if (header->len == 0x01)
     {
         printf("Error long header not handle yet !\n");
+        free(cdata);
         return ECORE_CALLBACK_RENEW;
     }
 
@@ -753,8 +787,6 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     len = sizeof(cdata->client_addr);
     cdata->len = recvfrom(client->fd, cdata->data,READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
 
-    printf("Receive %d bytes from %s\n", cdata->len, cdata->client_addr.sin6_addr);
-
     header = (EMqtt_Sn_Small_Header *)cdata->data;
 
     d = cdata->data;
@@ -765,10 +797,19 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     if (header->len == 0x01)
     {
         printf("Error long header not handle yet !\n");
+        free(cdata);
         return ECORE_CALLBACK_RENEW;
     }
 
-
+    switch(header->msg_type)
+    {
+    case EMqtt_Sn_CONNACK:
+        _mqtt_sn_connack_msg(client, cdata);
+        break;
+    default:
+        printf("Unknown message\n");
+        break;
+    }
 
     free(cdata);
 
@@ -938,6 +979,7 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
     msg->flags = 0;
     msg->protocol_id = 1;
     msg->duration = htons((uint16_t)keepalive);
+    client->keepalive = keepalive;
     snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
     msg->header.len = sizeof(msg) + strlen(client->name);
     send(client->fd, msg, msg->header.len, 0);
@@ -945,8 +987,9 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
 }
 
 
-
+/*
 void emqtt_sn_client_subscribe((EMqtt_Sn_Client *client, char *topic, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb, void *data)
 {
 
 }
+*/
