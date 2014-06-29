@@ -4,9 +4,9 @@
 
 #include "EMqtt.h"
 
-void _topic_received_cb(void *data, const char *topic, const char *value)
+void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, const char *value)
 {
-    printf("%s\n", value);
+    printf("HERE WE GO : %s\n", value);
 }
 
 int
@@ -17,9 +17,14 @@ main(int argc, char **argv)
     emqtt_init();
 
     client = emqtt_sn_client_add(argv[1], atoi(argv[2]), "EMqtt Client");
+    if (!client)
+    {
+        printf("Erreur creating client! Exiting\n");
+        return EXIT_FAILURE;
+    }
     emqtt_sn_client_connect_send(client, NULL, NULL, 10.0);
 
-    //emqtt_sn_subscribe(client, argv[3], _topic_received_cb, NULL);
+    emqtt_sn_client_subscribe(client, argv[3], _topic_received_cb, NULL);
 
     ecore_main_loop_begin();
 

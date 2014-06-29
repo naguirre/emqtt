@@ -92,10 +92,11 @@ struct _EMqtt_Sn_Server
 {
     const char *addr;
     unsigned short port;
+    int fd;
     Eina_List *subscribers;
     Eina_List *topics;
     uint16_t last_topic;
-    int fd;
+
 };
 
 struct _EMqtt_Sn_Client
@@ -107,6 +108,9 @@ struct _EMqtt_Sn_Client
     const char *name;
     Ecore_Timer *keepalive_timer;
     double keepalive;
+    Eina_List *subscribers;
+    Eina_List *topics;
+    uint16_t last_msg_id;
 };
 
 struct _Mqtt_Client_Data
@@ -127,6 +131,9 @@ struct _EMqtt_Sn_Subscriber
 {
     EMqtt_Sn_Topic *topic;
     struct sockaddr_in6 client_addr;
+    uint16_t msg_id;
+    void (*topic_received_cb) (void *data, EMqtt_Sn_Client *client, const char *topic, const char *value);
+    void *data;
 };
 
 
@@ -369,12 +376,12 @@ struct _Server
 };
 
 static EMqtt_Sn_Topic *
-_mqtt_topic_name_get(const char *topic_name, EMqtt_Sn_Server *srv)
+_mqtt_topic_name_get(const char *topic_name, Eina_List *topics)
 {
     Eina_List *l;
     EMqtt_Sn_Topic *topic;
 
-    EINA_LIST_FOREACH(srv->topics, l, topic)
+    EINA_LIST_FOREACH(topics, l, topic)
     {
         if (topic && !strcmp(topic_name, topic->name))
             return topic;
@@ -383,12 +390,12 @@ _mqtt_topic_name_get(const char *topic_name, EMqtt_Sn_Server *srv)
 }
 
 static EMqtt_Sn_Topic *
-_mqtt_topic_id_get(uint16_t topic_id, EMqtt_Sn_Server *srv)
+_mqtt_topic_id_get(uint16_t topic_id, Eina_List *topics)
 {
     Eina_List *l;
     EMqtt_Sn_Topic *topic = NULL;
 
-    EINA_LIST_FOREACH(srv->topics, l, topic)
+    EINA_LIST_FOREACH(topics, l, topic)
     {
         if (topic_id == topic->id)
             return topic;
@@ -397,12 +404,12 @@ _mqtt_topic_id_get(uint16_t topic_id, EMqtt_Sn_Server *srv)
 }
 
 static Eina_Bool
-_mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, EMqtt_Sn_Server *srv)
+_mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, Eina_List *subscribers)
 {
     Eina_List *l;
     EMqtt_Sn_Subscriber *subscriber;
 
-    EINA_LIST_FOREACH(srv->subscribers, l, subscriber)
+    EINA_LIST_FOREACH(subscribers, l, subscriber)
     {
         if (memcmp((void*)&cdata->client_addr, (void*)&subscriber->client_addr, sizeof(cdata->client_addr)) &&
                 !strcmp(name, subscriber->topic->name))
@@ -412,12 +419,12 @@ _mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, EMqtt_Sn
 }
 
 static Eina_Bool
-_mqtt_subscriber_id_exists(Mqtt_Client_Data *cdata, uint16_t id, EMqtt_Sn_Server *srv)
+_mqtt_subscriber_id_exists(Mqtt_Client_Data *cdata, uint16_t id, Eina_List *subscribers)
 {
     Eina_List *l;
     EMqtt_Sn_Subscriber *subscriber;
 
-    EINA_LIST_FOREACH(srv->subscribers, l, subscriber)
+    EINA_LIST_FOREACH(subscribers, l, subscriber)
     {
         if (memcmp((void*)&cdata->client_addr, (void*)&subscriber->client_addr, sizeof(cdata->client_addr)) &&
                 id == subscriber->topic->id)
@@ -427,12 +434,13 @@ _mqtt_subscriber_id_exists(Mqtt_Client_Data *cdata, uint16_t id, EMqtt_Sn_Server
 }
 
 static EMqtt_Sn_Topic *
-_mqtt_topic_new(const char *name, EMqtt_Sn_Server *srv)
+_mqtt_topic_new(const char *name, uint16_t *next_topic)
 {
     EMqtt_Sn_Topic *topic;
 
     topic = calloc(1, sizeof(EMqtt_Sn_Topic));
-    topic->id = srv->last_topic++;
+    if (next_topic)
+            topic->id = *next_topic++;
     topic->name = eina_stringshare_add(name);
     return topic;
 }
@@ -475,11 +483,11 @@ _mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     topic_name = calloc(1, s + 1);
     memcpy(topic_name, cdata->data + sizeof(EMqtt_Sn_Register_Msg) , s);
 
-    topic = _mqtt_topic_name_get(topic_name, srv);
+    topic = _mqtt_topic_name_get(topic_name, srv->topics);
     if (!topic)
         /* Create the new topic */
     {
-        topic = _mqtt_topic_new(topic_name, srv);
+        topic = _mqtt_topic_new(topic_name, &srv->last_topic);
         srv->topics = eina_list_append(srv->topics, topic);
         resp.topic_id = htons(topic->id);
         resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
@@ -534,6 +542,43 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 }
 
 static void
+_mqtt_sn_client_publish_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
+{
+    EMqtt_Sn_Publish_Msg *msg;
+    EMqtt_Sn_Puback_Msg resp;
+    Eina_List *l;
+    EMqtt_Sn_Subscriber *subscriber;
+    char *data;
+    size_t s;
+
+    msg = (EMqtt_Sn_Publish_Msg*)cdata->data;
+
+    s = msg->header.len - (sizeof(EMqtt_Sn_Publish_Msg));
+    data = calloc(1, s + 1);
+    memcpy(data, cdata->data + sizeof(EMqtt_Sn_Publish_Msg) , s);
+
+    resp.header.len = sizeof(EMqtt_Sn_Puback_Msg);
+    resp.header.msg_type = EMqtt_Sn_PUBACK;
+    resp.topic_id = msg->topic_id;
+    resp.msg_id = msg->msg_id;
+    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
+
+
+    send(client->fd, &resp, resp.header.len, 0);
+
+    EINA_LIST_FOREACH(client->subscribers, l, subscriber)
+    {
+        if (subscriber->topic->id == htons(msg->topic_id))
+        {
+            if (subscriber->topic_received_cb)
+                subscriber->topic_received_cb(subscriber->data, client, subscriber->topic->name, data);
+        }
+    }
+
+}
+
+
+static void
 _mqtt_sn_pingreq_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 {
     EMqtt_Sn_Pingresp_Msg resp;
@@ -568,6 +613,8 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     EMqtt_Sn_Topic *topic;
     Eina_Bool found = EINA_FALSE;
 
+    printf("Subscribe\n");
+
     msg = (EMqtt_Sn_Subscribe_Msg *)cdata->data;
     topic_id_type = msg->flags & 0x03;
     switch(topic_id_type)
@@ -592,20 +639,22 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
         break;
     }
 
-    topic = _mqtt_topic_name_get(topic_name, srv);
+    topic = _mqtt_topic_name_get(topic_name, srv->topics);
     if (!topic)
     {
-        topic = _mqtt_topic_new(topic_name, srv);
+        topic = _mqtt_topic_new(topic_name, &srv->last_topic);
         srv->topics = eina_list_append(srv->topics, topic);
     }
 
-    if (!_mqtt_subscriber_name_exists(cdata, topic_name, srv))
+    if (!_mqtt_subscriber_name_exists(cdata, topic_name, srv->subscribers))
     {
         subscriber = calloc(1, sizeof(EMqtt_Sn_Subscriber));
         subscriber->topic = topic;
         subscriber->client_addr = cdata->client_addr;
         srv->subscribers = eina_list_append(srv->subscribers, subscriber);
     }
+
+    printf("%s subscrive to topic %s[%d]\n", cdata->client_addr, topic->name, topic->id);
 
     resp.header.len = sizeof(EMqtt_Sn_Suback_Msg);
     resp.header.msg_type = EMqtt_Sn_SUBACK;
@@ -643,9 +692,30 @@ _mqtt_sn_connack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 
     /* Client now accepted, create a timer to launch Ping request each keepalive seconds */
     client->keepalive_timer = ecore_timer_add(client->keepalive, _mqtt_keepalive_timer_cb, client);
+}
 
+static void
+_mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
+{
+    EMqtt_Sn_Suback_Msg *msg;
+    EMqtt_Sn_Subscriber *subscriber;
+    Eina_List *l;
 
+    msg = (EMqtt_Sn_Suback_Msg *)cdata->data;
 
+    if (msg->ret_code != EMqtt_Sn_RETURN_CODE_ACCEPTED)
+    {
+        printf("Error : publish not accepted by server\n");
+        return;
+    }
+
+    EINA_LIST_FOREACH(client->subscribers, l, subscriber)
+    {
+        if (subscriber->msg_id == htons(msg->msg_id))
+        {
+            subscriber->topic->id = htons(msg->topic_id);
+        }
+    }
 }
 
 int emqtt_init(void)
@@ -806,6 +876,12 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     case EMqtt_Sn_CONNACK:
         _mqtt_sn_connack_msg(client, cdata);
         break;
+    case EMqtt_Sn_SUBACK:
+        _mqtt_sn_suback_msg(client, cdata);
+        break;
+    case EMqtt_Sn_PUBLISH:
+        _mqtt_sn_client_publish_msg(client, cdata);
+        break;
     default:
         printf("Unknown message\n");
         break;
@@ -959,8 +1035,6 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
 
 }
 
-
-
 void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Connect_Cb connected_cb, void *data, double keepalive)
 {
     char d[256];
@@ -968,11 +1042,6 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
 
     if (!client)
         return;
-
-    EMqtt_Sn_Small_Header header;
-    uint8_t flags;
-    uint8_t protocol_id;
-    uint16_t duration;
 
     msg = (EMqtt_Sn_Connect_Msg *)d;
     msg->header.msg_type = EMqtt_Sn_CONNECT;
@@ -986,10 +1055,39 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
     printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
 }
 
-
-/*
-void emqtt_sn_client_subscribe((EMqtt_Sn_Client *client, char *topic, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb, void *data)
+void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb, void *data)
 {
+    char d[256];
+    EMqtt_Sn_Subscribe_Msg *msg;
+    EMqtt_Sn_Topic *topic;
+    EMqtt_Sn_Subscriber *subscriber;
 
+    if (!topic)
+        return;
+
+    msg = (EMqtt_Sn_Subscribe_Msg *)d;
+
+    msg->header.len;
+    msg->header.msg_type = EMqtt_Sn_SUBSCRIBE;
+    msg->flags = 0;
+    msg->msg_id = client->last_msg_id++;
+    snprintf(d + sizeof(msg) - 2, sizeof(d) - sizeof(msg) - 2, "%s", topic);
+    msg->header.len = sizeof(msg) - 2 + strlen(client->name);
+
+    topic = _mqtt_topic_name_get(topic_name, client->topics);
+    if (!topic)
+    {
+        topic = _mqtt_topic_new(topic_name, NULL);
+        client->topics = eina_list_append(client->topics, topic);
+    }
+
+    subscriber = calloc(1, sizeof(EMqtt_Sn_Subscriber));
+    subscriber->topic = topic;
+    subscriber->topic_received_cb = topic_received_cb;
+    subscriber->data = data;
+    subscriber->msg_id = msg->msg_id;
+    client->subscribers = eina_list_append(client->subscribers, subscriber);
+
+    send(client->fd, msg, msg->header.len, 0);
 }
-*/
+
