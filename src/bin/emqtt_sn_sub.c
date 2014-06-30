@@ -9,6 +9,12 @@ void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, 
     printf("HERE WE GO : %s\n", value);
 }
 
+void _connect_received_cb(EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_TYPE connection_state)
+{
+  printf("State: %d\n",connection_state);
+}
+
+
 int
 main(int argc, char **argv)
 {
@@ -22,7 +28,7 @@ main(int argc, char **argv)
         printf("Erreur creating client! Exiting\n");
         return EXIT_FAILURE;
     }
-    emqtt_sn_client_connect_send(client, NULL, NULL, 10.0);
+    emqtt_sn_client_connect_send(client, _connect_received_cb, NULL, 10.0);
 
     emqtt_sn_client_subscribe(client, argv[3], _topic_received_cb, NULL);
 

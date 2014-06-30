@@ -11,23 +11,60 @@ _mqtt_keepalive_timer_cb(void *data)
     msg.header.msg_type = EMqtt_Sn_PINGREQ;
 
     send(client->fd, &msg, msg.header.len, 0);
+    /* TODO return value */
 }
+
+
+static Eina_Bool
+_mqtt_timeout_connect_cb(void *data)
+{
+  EMqtt_Sn_Client *client = data;
+  EMqtt_Sn_Connect_Msg *msg; 
+  char d[256];
+  EMqtt_Sn_CONNECTION_TYPE connection_state;
+ 
+  msg = (EMqtt_Sn_Connect_Msg *)d;
+  msg->header.msg_type = EMqtt_Sn_CONNECT;
+  msg->flags = 0;
+  msg->protocol_id = 1;
+  msg->duration = client->keepalive;
+ 
+  snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
+  msg->header.len = sizeof(msg) + strlen(client->name);
+  
+  send(client->fd, msg, msg->header.len, 0);
+  printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
+
+  connection_state = CONNECTION_WIP;
+  connected_received_cb(client,connection_state);
+      
+}
+
+
 
 static void
 _mqtt_sn_connack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 {
     EMqtt_Sn_Connack_Msg *msg;
+    EMqtt_Sn_CONNECTION_TYPE connection_state;
 
     msg = (EMqtt_Sn_Connack_Msg *)cdata->data;
-
+    /* TODO : Check if connack is a valid request */
     if (msg->ret_code != EMqtt_Sn_RETURN_CODE_ACCEPTED)
     {
+      /* TODO : call connected_cb with error code */
         printf("Error : connection not accepted by server\n");
-        return;
+	connection_state = CONNECTION_ERROR;
+    }else{
+	connection_state = CONNECTION_ACCEPTED;
+	client->timeout = ecore_timer_del(client->timeout);
+	/* TODO : check keppalive_timer doesn't exist */
+	/* Client now accepted, create a timer to launch Ping request each keepalive seconds */
+	client->keepalive_timer = ecore_timer_add(client->keepalive, _mqtt_keepalive_timer_cb, client);
     }
 
-    /* Client now accepted, create a timer to launch Ping request each keepalive seconds */
-    client->keepalive_timer = ecore_timer_add(client->keepalive, _mqtt_keepalive_timer_cb, client);
+    connected_received_cb(client,connection_state);
+
 }
 
 static Eina_Bool
@@ -58,10 +95,13 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     EMqtt_Sn_Subscriber *subscriber;
     Eina_List *l;
 
+
+    /* TODO : check if suback is a valid request */
     msg = (EMqtt_Sn_Suback_Msg *)cdata->data;
 
     if (msg->ret_code != EMqtt_Sn_RETURN_CODE_ACCEPTED)
     {
+        /* TODO : send subscribe_cb with error code */
         printf("Error : publish not accepted by server\n");
         return;
     }
@@ -154,6 +194,8 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     case EMqtt_Sn_PUBLISH:
         _mqtt_sn_client_publish_msg(client, cdata);
         break;
+	/* TODO : REGISTER */
+    /* TODO : PINRESP & PINGREQ */
     default:
         printf("Unknown message\n");
         break;
@@ -184,6 +226,7 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
     client->port = port;
     client->name = eina_stringshare_add(client_name);
     client->fd = socket(PF_INET6, SOCK_DGRAM, 0);
+    client->connection_state = CONNECTION_WIP;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC;
@@ -258,16 +301,29 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
     if (!client)
         return;
 
-    msg = (EMqtt_Sn_Connect_Msg *)d;
-    msg->header.msg_type = EMqtt_Sn_CONNECT;
-    msg->flags = 0;
-    msg->protocol_id = 1;
-    msg->duration = htons((uint16_t)keepalive);
-    client->keepalive = keepalive;
-    snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
-    msg->header.len = sizeof(msg) + strlen(client->name);
-    send(client->fd, msg, msg->header.len, 0);
-    printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
+    /* TODO : check connected state */
+    /* TODO : check connection in progress state */
+
+    if(client->connection_state == CONNECTION_WIP){
+
+      msg = (EMqtt_Sn_Connect_Msg *)d;
+      msg->header.msg_type = EMqtt_Sn_CONNECT;
+      msg->flags = 0;
+      msg->protocol_id = 1;
+      msg->duration = htons((uint16_t)keepalive);
+          
+      connected_received_cb = connected_cb;
+      client->keepalive = keepalive;
+      snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
+      msg->header.len = sizeof(msg) + strlen(client->name);
+
+      client->timeout = ecore_timer_add(TIMEOUT_CONNECT, _mqtt_timeout_connect_cb, client);
+
+      send(client->fd, msg, msg->header.len, 0);
+      printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
+
+    }
+
 }
 
 void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb, void *data)
@@ -304,5 +360,7 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
     client->subscribers = eina_list_append(client->subscribers, subscriber);
 
     send(client->fd, msg, msg->header.len, 0);
+    /* return emqtt_sn_subscriber */
 }
 
+/* TODO : Emqtt_Sn_Subscriber delete */

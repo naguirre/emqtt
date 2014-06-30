@@ -48,6 +48,7 @@ enum _EMqtt_Sn_MSG_TYPE
     EMqtt_Sn_WILLMSGRESP
 };
 
+
 struct _EMqtt_Sn_Msg_Desc
 {
     EMqtt_Sn_MSG_TYPE val;
@@ -72,13 +73,17 @@ struct _EMqtt_Sn_Client
     const char *addr;
     unsigned short port;
     int fd;
-    struct sockaddr server_addr;
+    struct sockaddr server_addr; /* A vérifier */
     const char *name;
     Ecore_Timer *keepalive_timer;
     double keepalive;
     Eina_List *subscribers;
     Eina_List *topics;
     uint16_t last_msg_id;
+
+    EMqtt_Sn_CONNECTION_TYPE connection_state;
+    Ecore_Timer *timeout;
+  /* TODO : ajouter fd_handler_add */
 };
 
 struct _Mqtt_Client_Data
@@ -336,6 +341,11 @@ struct _Server
     int sdata;
 };
 
-#define READBUFSIZ 65536
+#define READBUFSIZ 65536 /* TODO : changer a 255 */
+
+
+
+void (*connected_received_cb) (EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_TYPE connection_state);
+
 
 #endif /* _EMQTT_PRIVATE_H */
