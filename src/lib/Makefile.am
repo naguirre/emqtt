@@ -16,7 +16,10 @@ lib_LTLIBRARIES = libemqtt.la
 
 libemqtt_la_SOURCES = \
 EMqtt.h \
-emqtt_main.c
+emqtt_client.c \
+emqtt_main.c \
+emqtt_server.c \
+emqtt_topic.c
 
 libemqtt_la_LIBADD = @EMQTT_LIBS@
 
