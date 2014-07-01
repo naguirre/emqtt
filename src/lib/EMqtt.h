@@ -10,14 +10,15 @@
 extern "C" {
 #endif /* ifdef __cplusplus */
 
+#define MAX_RETRY 6
 #define TIMEOUT_CONNECT 5
-typedef enum _EMqtt_Sn_CONNECTION_TYPE EMqtt_Sn_CONNECTION_TYPE;
 enum _EMqtt_Sn_CONNECTION_TYPE
 {
   CONNECTION_ACCEPTED,
   CONNECTION_WIP,
   CONNECTION_ERROR
 };
+typedef enum _EMqtt_Sn_CONNECTION_TYPE EMqtt_Sn_CONNECTION_TYPE;
 
 
 typedef struct _EMqtt_Sn_Server EMqtt_Sn_Server;

@@ -101,7 +101,7 @@ struct _EMqtt_Sn_Subscriber
     EMqtt_Sn_Topic *topic;
     struct sockaddr_in6 client_addr;
     uint16_t msg_id;
-    void (*topic_received_cb) (void *data, EMqtt_Sn_Client *client, const char *topic, const char *value);
+  void (*topic_received_cb) (EMqtt_Sn_Client *client, uint16_t id, void *data);
     void *data;
 };
 

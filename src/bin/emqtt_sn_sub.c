@@ -4,14 +4,25 @@
 
 #include "EMqtt.h"
 
-void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, const char *value)
+
+
+void _topic_received_cb(EMqtt_Sn_Client *client, uint16_t id, void *data)
 {
-    printf("HERE WE GO : %s\n", value);
+  char *msg = data;
+
+  printf("TOPIC ID : %d\n", id);
+  printf("MSG : %s\n", msg);
+
 }
 
 void _connect_received_cb(EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_TYPE connection_state)
 {
+
   printf("State: %d\n",connection_state);
+  if(connection_state == CONNECTION_ACCEPTED){
+    emqtt_sn_client_subscribe(client,"temp", _topic_received_cb, NULL);
+  }
+
 }
 
 
@@ -29,8 +40,6 @@ main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     emqtt_sn_client_connect_send(client, _connect_received_cb, NULL, 10.0);
-
-    emqtt_sn_client_subscribe(client, argv[3], _topic_received_cb, NULL);
 
     ecore_main_loop_begin();
 

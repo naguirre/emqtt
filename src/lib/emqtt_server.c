@@ -283,6 +283,11 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     return ECORE_CALLBACK_RENEW;
 }
 
+
+
+
+
+
 EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
 {
     EMqtt_Sn_Server *srv;
@@ -323,6 +328,7 @@ EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
       printf("Error");
 
     ecore_main_fd_handler_add(srv->fd, ECORE_FD_READ, _mqtt_server_data_cb, srv, NULL, NULL);
+
 
     return srv;
 

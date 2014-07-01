@@ -22,22 +22,32 @@ _mqtt_timeout_connect_cb(void *data)
   EMqtt_Sn_Connect_Msg *msg; 
   char d[256];
   EMqtt_Sn_CONNECTION_TYPE connection_state;
- 
-  msg = (EMqtt_Sn_Connect_Msg *)d;
-  msg->header.msg_type = EMqtt_Sn_CONNECT;
-  msg->flags = 0;
-  msg->protocol_id = 1;
-  msg->duration = client->keepalive;
- 
-  snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
-  msg->header.len = sizeof(msg) + strlen(client->name);
-  
-  send(client->fd, msg, msg->header.len, 0);
-  printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
+  static int retry = 0;
 
-  connection_state = CONNECTION_WIP;
-  connected_received_cb(client,connection_state);
-      
+  if(retry < MAX_RETRY){
+    msg = (EMqtt_Sn_Connect_Msg *)d;
+    msg->header.msg_type = EMqtt_Sn_CONNECT;
+    msg->flags = 0;
+    msg->protocol_id = 1;
+    msg->duration = client->keepalive;
+ 
+    snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
+    msg->header.len = sizeof(msg) + strlen(client->name);
+  
+    send(client->fd, msg, msg->header.len, 0);
+    printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
+
+    connection_state = CONNECTION_WIP;
+    connected_received_cb(client,connection_state);
+
+    retry++;
+  }else{
+    connection_state = CONNECTION_ERROR;
+    connected_received_cb(client,connection_state);
+    client->timeout = ecore_timer_del(client->timeout);
+    retry = 0;
+  }      
+
 }
 
 
@@ -111,6 +121,7 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         if (subscriber->msg_id == htons(msg->msg_id))
         {
             subscriber->topic->id = htons(msg->topic_id);
+	    subscriber->topic_received_cb(client,subscriber->topic->id, NULL);
         }
     }
 }
@@ -145,7 +156,7 @@ _mqtt_sn_client_publish_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         if (subscriber->topic->id == htons(msg->topic_id))
         {
             if (subscriber->topic_received_cb)
-                subscriber->topic_received_cb(subscriber->data, client, subscriber->topic->name, data);
+	      subscriber->topic_received_cb(client, subscriber->topic->id, data);
         }
     }
 }
@@ -333,8 +344,6 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
     EMqtt_Sn_Topic *topic;
     EMqtt_Sn_Subscriber *subscriber;
 
-    if (!topic)
-        return;
 
     msg = (EMqtt_Sn_Subscribe_Msg *)d;
 
@@ -351,6 +360,7 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
         topic = emqtt_topic_new(topic_name, NULL);
         client->topics = eina_list_append(client->topics, topic);
     }
+
 
     subscriber = calloc(1, sizeof(EMqtt_Sn_Subscriber));
     subscriber->topic = topic;
