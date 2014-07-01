@@ -26,7 +26,7 @@ typedef struct _EMqtt_Sn_Client EMqtt_Sn_Client;
 
 
   /* TODO : add error code */
-typedef void (*EMqtt_Sn_Client_Connect_Cb) (void *data, EMqtt_Sn_Client *client);
+typedef void (*EMqtt_Sn_Client_Connect_Cb) (EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_TYPE connection_state);
 typedef void (*EMqtt_Sn_Client_Topic_Received_Cb) (void *data, EMqtt_Sn_Client *client, const char *topic, const char *value);
 
 int emqtt_init(void);

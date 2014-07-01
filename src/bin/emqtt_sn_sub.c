@@ -6,18 +6,17 @@
 
 
 
-void _topic_received_cb(EMqtt_Sn_Client *client, uint16_t id, void *data)
+void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, const char *value)
 {
-  char *msg = data;
 
-  printf("TOPIC ID : %d\n", id);
-  printf("MSG : %s\n", msg);
+  printf("TOPIC : %s\n", topic);
+  printf("MSG : %s\n", value);
 
 }
 
 void _connect_received_cb(EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_TYPE connection_state)
 {
-
+ 
   printf("State: %d\n",connection_state);
   if(connection_state == CONNECTION_ACCEPTED){
     emqtt_sn_client_subscribe(client,"temp", _topic_received_cb, NULL);
