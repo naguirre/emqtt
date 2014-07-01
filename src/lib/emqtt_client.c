@@ -116,7 +116,26 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
      {
 	  /* TODO : send subscribe_cb with error code */
 	  printf("Error : publish not accepted by server\n");
+	  EINA_LIST_FOREACH(client->subscribers, l, subscriber)
+	  {
+	       if (subscriber->topic->id == htons(msg->topic_id))
+	       {
+		    if (subscriber->suback_state_cb)
+			 subscriber->suback_state_cb(ERROR);
+	       }
+	  }
 	  return;
+     }
+     else
+     {
+	  EINA_LIST_FOREACH(client->subscribers, l, subscriber)
+	  {
+	       if (subscriber->topic->id == htons(msg->topic_id))
+	       {
+		    if (subscriber->suback_state_cb)
+			 subscriber->suback_state_cb(ACCEPTED);
+	       }
+	  }
      }
 
 
@@ -333,7 +352,7 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
 
 }
 
-void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb, void *data)
+void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb,  EMqtt_Sn_Client_Suback_Cb suback_state_cb, void *data)
 {
      char d[256];
      EMqtt_Sn_Subscribe_Msg *msg;
@@ -361,6 +380,7 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
      subscriber = calloc(1, sizeof(EMqtt_Sn_Subscriber));
      subscriber->topic = topic;
      subscriber->topic_received_cb = topic_received_cb;
+     subscriber->suback_state_cb = suback_state_cb;
      subscriber->data = data;
      subscriber->msg_id = msg->msg_id;
      client->subscribers = eina_list_append(client->subscribers, subscriber);

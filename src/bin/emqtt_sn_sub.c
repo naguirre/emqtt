@@ -14,12 +14,19 @@ void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, 
 
 }
 
+
+void _suback_received_cb(EMqtt_Sn_SUBACK_TYPE suback_state)
+{
+  printf("SUBACK : %d\n", suback_state);
+}
+
+
 void _connect_received_cb(EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_TYPE connection_state)
 {
  
   printf("State: %d\n",connection_state);
   if(connection_state == CONNECTION_ACCEPTED){
-    emqtt_sn_client_subscribe(client,"temp", _topic_received_cb, NULL);
+    emqtt_sn_client_subscribe(client,"temp", _topic_received_cb, _suback_received_cb, NULL);
   }
 
 }
