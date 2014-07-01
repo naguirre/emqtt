@@ -64,6 +64,7 @@ _mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     size_t s;
     Eina_Bool found = EINA_FALSE;
 
+
     msg = (EMqtt_Sn_Register_Msg*)cdata->data;
 
     s = msg->header.len - (sizeof(EMqtt_Sn_Register_Msg));
@@ -74,7 +75,7 @@ _mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     if (!topic)
         /* Create the new topic */
     {
-        topic = emqtt_topic_new(topic_name, &srv->last_topic);
+	 topic = emqtt_topic_new(topic_name, &srv->last_topic);
         srv->topics = eina_list_append(srv->topics, topic);
         resp.topic_id = htons(topic->id);
         resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
@@ -173,7 +174,6 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     {
         /* Topic name */
         size_t s;
-
         s = msg->header.len - ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t)));
         topic_name = calloc(1, s + 1);
         memcpy(topic_name, cdata->data + sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t) , s);
@@ -283,6 +283,11 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     return ECORE_CALLBACK_RENEW;
 }
 
+
+
+
+
+
 EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
 {
     EMqtt_Sn_Server *srv;
@@ -298,6 +303,7 @@ EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
     srv->port = port;
     srv->topics = NULL;
     srv->subscribers = NULL;
+    srv->last_topic = 0;
 
     srv->fd = socket(PF_INET6, SOCK_DGRAM, 0);
 
@@ -323,6 +329,7 @@ EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
       printf("Error");
 
     ecore_main_fd_handler_add(srv->fd, ECORE_FD_READ, _mqtt_server_data_cb, srv, NULL, NULL);
+
 
     return srv;
 
