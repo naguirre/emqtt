@@ -358,16 +358,17 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
      EMqtt_Sn_Subscribe_Msg *msg;
      EMqtt_Sn_Topic *topic;
      EMqtt_Sn_Subscriber *subscriber;
-
+     int i;
 
      msg = (EMqtt_Sn_Subscribe_Msg *)d;
 
-     msg->header.len;
+
      msg->header.msg_type = EMqtt_Sn_SUBSCRIBE;
      msg->flags = 0;
-     msg->msg_id = client->last_msg_id++;
-     snprintf(d + sizeof(msg) - 2, sizeof(d) - sizeof(msg) - 2, "%s", topic);
-     msg->header.len = sizeof(msg) - 2 + strlen(client->name);
+     msg->msg_id = (client->last_msg_id)++;
+     snprintf(d + ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t))), sizeof(d) - ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t))), "%s", topic_name);
+     msg->header.len = ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t))) + strlen(topic_name);
+
 
      topic = emqtt_topic_name_get(topic_name, client->topics);
      if (!topic)
