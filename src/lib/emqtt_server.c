@@ -9,7 +9,7 @@ _mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, Eina_Lis
 
     EINA_LIST_FOREACH(subscribers, l, subscriber)
     {
-        if (memcmp((void*)&cdata->client_addr, (void*)&subscriber->client_addr, sizeof(cdata->client_addr)) &&
+        if (!memcmp((void*)&cdata->client_addr, (void*)&subscriber->client_addr, sizeof(cdata->client_addr)) &&
                 !strcmp(name, subscriber->topic->name))
             return EINA_TRUE;
     }
@@ -24,7 +24,7 @@ _mqtt_subscriber_id_exists(Mqtt_Client_Data *cdata, uint16_t id, Eina_List *subs
 
     EINA_LIST_FOREACH(subscribers, l, subscriber)
     {
-        if (memcmp((void*)&cdata->client_addr, (void*)&subscriber->client_addr, sizeof(cdata->client_addr)) &&
+        if (!memcmp((void*)&cdata->client_addr, (void*)&subscriber->client_addr, sizeof(cdata->client_addr)) &&
                 id == subscriber->topic->id)
             return EINA_TRUE;
     }
