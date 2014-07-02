@@ -225,19 +225,13 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     socklen_t len;
     Mqtt_Client_Data *cdata;
 
-#define READBUFSIZ 65536
     char* d;
     struct sockaddr_in6 cliaddr;
 
     cdata = calloc(1, sizeof(Mqtt_Client_Data));
 
     len = sizeof(cdata->client_addr);
-    cdata->len = recvfrom(srv->fd, cdata->data,READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
-
-    printf("Receive %d bytes from %s\n", cdata->len, cdata->client_addr.sin6_addr);
-
-    //sendto(sockfd,mesg,n,0,(struct sockaddr *)&cliaddr,sizeof(cliaddr));
-
+    cdata->len = recvfrom(srv->fd, cdata->data, READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
 
     header = (EMqtt_Sn_Small_Header *)cdata->data;
 
