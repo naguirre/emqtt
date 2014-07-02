@@ -10,6 +10,16 @@
 extern "C" {
 #endif /* ifdef __cplusplus */
 
+#define EMQTT_MAX_RETRY 6
+#define EMQTT_TIMEOUT_CONNECT 5
+enum _EMqtt_Sn_CONNECTION_STATE
+{
+  CONNECTION_ACCEPTED,
+  CONNECTION_IN_PROGRESS,
+  CONNECTION_ERROR
+};
+typedef enum _EMqtt_Sn_CONNECTION_STATE EMqtt_Sn_CONNECTION_STATE;
+
 enum _EMqtt_Sn_ERROR_TYPE
 {
   ACCEPTED,
