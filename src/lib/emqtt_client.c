@@ -281,14 +281,14 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
     printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
 }
 
-void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb, void *data)
+void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, EMqtt_Sn_Client_Topic_Received_Cb topic_received_cb, EMqtt_Sn_Client_Subscribe_Error_Cb subscribe_error_cb, void *data)
 {
     char d[256];
     EMqtt_Sn_Subscribe_Msg *msg;
     EMqtt_Sn_Topic *topic;
     EMqtt_Sn_Subscriber *subscriber;
 
-    if (!topic)
+    if (!topic_name)
         return;
 
     msg = (EMqtt_Sn_Subscribe_Msg *)d;
@@ -297,8 +297,8 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
     msg->header.msg_type = EMqtt_Sn_SUBSCRIBE;
     msg->flags = 0;
     msg->msg_id = client->last_msg_id++;
-    snprintf(d + sizeof(msg) - 2, sizeof(d) - sizeof(msg) - 2, "%s", topic);
-    msg->header.len = sizeof(msg) - 2 + strlen(client->name);
+    snprintf(d + ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t))), sizeof(d) - ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t))), "%s", topic_name);
+    msg->header.len = ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t))) + strlen(topic_name);
 
     topic = emqtt_topic_name_get(topic_name, client->topics);
     if (!topic)
@@ -310,6 +310,7 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
     subscriber = calloc(1, sizeof(EMqtt_Sn_Subscriber));
     subscriber->topic = topic;
     subscriber->topic_received_cb = topic_received_cb;
+    subscriber->subscribe_error_cb = subscribe_error_cb;
     subscriber->data = data;
     subscriber->msg_id = msg->msg_id;
     client->subscribers = eina_list_append(client->subscribers, subscriber);
