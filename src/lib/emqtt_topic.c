@@ -9,7 +9,7 @@ emqtt_topic_new(const char *name, uint16_t *next_topic)
 
     topic = calloc(1, sizeof(EMqtt_Sn_Topic));
     if (next_topic)
-            topic->id = *next_topic++;
+	     topic->id = (*next_topic)++;
     topic->name = eina_stringshare_add(name);
     return topic;
 }

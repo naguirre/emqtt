@@ -79,6 +79,11 @@ struct _EMqtt_Sn_Client
     Eina_List *subscribers;
     Eina_List *topics;
     uint16_t last_msg_id;
+
+    EMqtt_Sn_CONNECTION_STATE connection_state;
+    int connection_retry;
+    Ecore_Timer *timeout;
+    void (*connected_received_cb) (EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state);
 };
 
 struct _Mqtt_Client_Data
@@ -97,6 +102,7 @@ struct _EMqtt_Sn_Subscriber
     struct sockaddr_in6 client_addr;
     uint16_t msg_id;
     void (*topic_received_cb) (void *data, EMqtt_Sn_Client *client, const char *topic, const char *value);
+    void (*subscribe_error_cb) (EMqtt_Sn_ERROR_TYPE state);
     void *data;
 };
 
