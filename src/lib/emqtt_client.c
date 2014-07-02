@@ -63,14 +63,25 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     if (msg->ret_code != EMqtt_Sn_RETURN_CODE_ACCEPTED)
     {
         printf("Error : publish not accepted by server\n");
+        EINA_LIST_FOREACH(client->subscribers, l, subscriber)
+        {
+	    if (subscriber->topic->id == htons(msg->topic_id))
+	    {
+	        if (subscriber->subscribe_error_cb)
+	            subscriber->subscribe_error_cb(ERROR);
+	    }
+        }
         return;
     }
-
-    EINA_LIST_FOREACH(client->subscribers, l, subscriber)
+    else
     {
-        if (subscriber->msg_id == htons(msg->msg_id))
+        EINA_LIST_FOREACH(client->subscribers, l, subscriber)
         {
-            subscriber->topic->id = htons(msg->topic_id);
+	    if (subscriber->topic->id == htons(msg->topic_id))
+	    {
+	        if (subscriber->subscribe_error_cb)
+		    subscriber->subscribe_error_cb(ACCEPTED);
+	    }
         }
     }
 }
