@@ -74,27 +74,6 @@ _mqtt_sn_connack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 
 }
 
-static Eina_Bool
-_timer_cb(void *data)
-{
-    EMqtt_Sn_Server *srv = data;
-    Eina_List *l;
-    EMqtt_Sn_Subscriber *subscriber;
-
-
-    printf("timer\n");
-    EINA_LIST_FOREACH(srv->subscribers, l, subscriber)
-    {
-        EMqtt_Sn_Pingreq_Msg msg;
-        msg.header.len = 2;
-        msg.header.msg_type = EMqtt_Sn_PINGREQ;
-
-        sendto(srv->fd, &msg, msg.header.len, 0, (struct sockaddr *)&subscriber->client_addr, sizeof(subscriber->client_addr));
-
-    }
-    return EINA_TRUE;
-}
-
 static void
 _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 {
