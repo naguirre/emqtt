@@ -13,6 +13,7 @@ typedef struct _EMqtt_Sn_Msg_Desc EMqtt_Sn_Msg_Desc;
 typedef enum _EMqtt_Sn_MSG_TYPE EMqtt_Sn_MSG_TYPE;
 typedef struct _EMqtt_Sn_Subscriber EMqtt_Sn_Subscriber;
 typedef struct _Mqtt_Client_Data Mqtt_Client_Data;
+typedef struct _EMqtt_Sn_Connected_Client EMqtt_Sn_Connected_Client;
 
 enum _EMqtt_Sn_MSG_TYPE
 {
@@ -60,11 +61,12 @@ struct _EMqtt_Sn_Server
 {
     const char *addr;
     unsigned short port;
-    int fd;
+    int fd6;
+    int fd4;
     Eina_List *subscribers;
     Eina_List *topics;
     uint16_t last_topic;
-
+    Eina_List *connected_clients;
 };
 
 struct _EMqtt_Sn_Client
@@ -87,12 +89,18 @@ struct _EMqtt_Sn_Client
     void *data;
 };
 
+struct _EMqtt_Sn_Connected_Client
+{
+    const char *client_id;
+    struct sockaddr addr;
+};
+
 struct _Mqtt_Client_Data
 {
     char data[65536];
     size_t len;
-    struct sockaddr_in6 client_addr;
-
+    int fd;
+    struct sockaddr client_addr;
 };
 
 
@@ -100,7 +108,7 @@ struct _Mqtt_Client_Data
 struct _EMqtt_Sn_Subscriber
 {
     EMqtt_Sn_Topic *topic;
-    struct sockaddr_in6 client_addr;
+    struct sockaddr client_addr;
     uint16_t msg_id;
     void (*topic_received_cb) (void *data, EMqtt_Sn_Client *client, const char *topic, const char *value);
     void (*subscribe_error_cb) (void *data, EMqtt_Sn_ERROR_TYPE state);

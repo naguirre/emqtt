@@ -1,6 +1,30 @@
 #include "EMqtt.h"
 #include "emqtt_private.h"
 
+
+const char *_get_ip(const struct sockaddr *addr)
+{
+    char s[256];
+
+    switch(addr->sa_family)
+    {
+    case AF_INET:
+        inet_ntop(AF_INET, &(((struct sockaddr_in *)addr)->sin_addr),
+                  s, sizeof(s));
+        break;
+
+    case AF_INET6:
+        inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)addr)->sin6_addr),
+                  s, sizeof(s));
+        break;
+
+    default:
+        return NULL;
+    }
+
+    return eina_stringshare_add(s);
+}
+
 static Eina_Bool
 _mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, Eina_List *subscribers)
 {
@@ -38,19 +62,22 @@ _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 {
     EMqtt_Sn_Connect_Msg *msg;
     EMqtt_Sn_Connack_Msg resp;
-    char *client_id;
+    EMqtt_Sn_Connected_Client *cl;
     size_t s;
 
     msg = (EMqtt_Sn_Connect_Msg *)cdata->data;
     s = msg->header.len - (sizeof(EMqtt_Sn_Connect_Msg));
-    client_id = calloc(1, s + 1);
-    memcpy(client_id, cdata->data + sizeof(EMqtt_Sn_Connect_Msg) , s);
+
+    cl = calloc(1, sizeof(EMqtt_Sn_Connected_Client));
+    srv->connected_clients = eina_list_append(srv->connected_clients, cl);
+    cl->client_id = eina_stringshare_nprintf(s, "%s", cdata->data + sizeof(EMqtt_Sn_Connect_Msg));
+    memcpy(&cl->addr, &cdata->client_addr, sizeof(struct sockaddr));
 
     resp.header.len = 0x03;
     resp.header.msg_type = EMqtt_Sn_CONNACK;
     resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
 
-    sendto(srv->fd, &resp, sizeof(resp), 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    sendto(cdata->fd, &resp, sizeof(resp), 0, &cl->addr, sizeof(cl->addr));
 }
 
 static void
@@ -89,7 +116,7 @@ _mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.header.msg_type = EMqtt_Sn_REGACK;
     resp.msg_id = msg->msg_id;
 
-    sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static void
@@ -99,10 +126,23 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     EMqtt_Sn_Puback_Msg resp;
     Eina_List *l;
     EMqtt_Sn_Subscriber *subscriber;
+    EMqtt_Sn_Connected_Client *cl = NULL;
     char *data;
     size_t s;
 
     msg = (EMqtt_Sn_Publish_Msg*)cdata->data;
+
+    EINA_LIST_FOREACH(l, srv->connected_clients, cl)
+    {
+        if (!memcmp(&cl->addr, &cdata->client_addr, sizeof(struct sockaddr)))
+            break;
+    }
+
+    if (!cl)
+    {
+        printf("Error : this client is not connected");
+        return;
+    }
 
     s = msg->header.len - (sizeof(EMqtt_Sn_Publish_Msg));
     data = calloc(1, s + 1);
@@ -114,15 +154,14 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.msg_id = msg->msg_id;
     resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
 
-
-    sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 
     EINA_LIST_FOREACH(srv->subscribers, l, subscriber)
     {
         if (subscriber->topic->id == htons(msg->topic_id))
         {
             printf("Header len : %d\n", msg->header.len);
-            sendto(srv->fd, msg, msg->header.len, 0, (struct sockaddr *)&subscriber->client_addr, sizeof(subscriber->client_addr));
+            sendto(cdata->fd, msg, msg->header.len, 0, (struct sockaddr *)&subscriber->client_addr, sizeof(subscriber->client_addr));
         }
     }
 
@@ -136,7 +175,7 @@ _mqtt_sn_pingreq_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.header.len = 2;
     resp.header.msg_type = EMqtt_Sn_PINGRESP;
 
-    sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static void
@@ -147,7 +186,7 @@ _mqtt_sn_disconnect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.header.len = 2;
     resp.header.msg_type = EMqtt_Sn_DISCONNECT;
 
-    sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static void
@@ -204,7 +243,7 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
         srv->subscribers = eina_list_append(srv->subscribers, subscriber);
     }
 
-    printf("%s subscrive to topic %s[%d]\n", cdata->client_addr, topic->name, topic->id);
+    printf("%s subscribe to topic %s[%d]\n", _get_ip(&cdata->client_addr), topic->name, topic->id);
 
     resp.header.len = sizeof(EMqtt_Sn_Suback_Msg);
     resp.header.msg_type = EMqtt_Sn_SUBACK;
@@ -212,7 +251,7 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.topic_id = htons(topic->id);
     resp.msg_id = msg->msg_id;
     resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
-    sendto(srv->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
@@ -226,19 +265,19 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     Mqtt_Client_Data *cdata;
 
     char* d;
-    struct sockaddr_in6 cliaddr;
+    struct sockaddr cliaddr;
 
     cdata = calloc(1, sizeof(Mqtt_Client_Data));
 
     len = sizeof(cdata->client_addr);
-
-    cdata->len = recvfrom(srv->fd, cdata->data,READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
+    cdata->fd = ecore_main_fd_handler_fd_get(fd_handler);
+    cdata->len = recvfrom(cdata->fd, cdata->data,READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
 
     header = (EMqtt_Sn_Small_Header *)cdata->data;
 
     d = cdata->data;
 
-    printf("Receive Message : %s[%d]\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type);
+    printf("Receive Message : %s[%d] from %s\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type, _get_ip(&cdata->client_addr));
 
     // Header
     if (header->len == 0x01)
@@ -278,11 +317,67 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     return ECORE_CALLBACK_RENEW;
 }
 
+int _create_server_udp_socket(sa_family_t sa_family, unsigned short port, EMqtt_Sn_Server *srv)
+{
+    struct sockaddr_storage servaddr;
+    int optval;
+    int fd;
+
+    fd = socket(sa_family, SOCK_DGRAM, 0);
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    switch(sa_family)
+    {
+    case AF_INET:
+    {
+        struct sockaddr_in *addr;
+        addr = (struct sockaddr_in*)&servaddr;
+        addr->sin_family = sa_family;
+        addr->sin_addr.s_addr=htonl(INADDR_ANY);
+        addr->sin_port = htons(port);
+        break;
+    }
+
+    case AF_INET6:
+    {
+        struct sockaddr_in6 *addr;
+        addr = (struct sockaddr_in6*)&servaddr;
+        addr->sin6_family = sa_family;
+        addr->sin6_addr = in6addr_any;
+        addr->sin6_port = htons(port);
+        break;
+    }
+
+    default:
+        return -1;
+    }
+
+    optval = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+        printf("Error\n");
+    if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)
+        printf("Error\n");
+
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
+                   (const void *)&optval, sizeof(optval)) < 0)
+      printf("Error\n");
+
+    if (bind(fd,  (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+      printf("Error");
+
+    ecore_main_fd_handler_add(fd, ECORE_FD_READ, _mqtt_server_data_cb, srv, NULL, NULL);
+
+    return fd;
+}
+
 EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
 {
     EMqtt_Sn_Server *srv;
-    struct sockaddr_in6 servaddr;
-    int optval;
+
+    struct sockaddr_in servaddr4;
+
     int flags;
 
     if (!addr || !port)
@@ -294,33 +389,10 @@ EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
     srv->topics = NULL;
     srv->subscribers = NULL;
 
-    srv->fd = socket(PF_INET6, SOCK_DGRAM, 0);
-
-    bzero(&servaddr,sizeof(servaddr));
-    servaddr.sin6_family = AF_INET6;
-    servaddr.sin6_addr = in6addr_any;
-    servaddr.sin6_port = htons(port);
-
-    optval = 1;
-    setsockopt(srv->fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-
-    if (fcntl(srv->fd, F_SETFL, O_NONBLOCK) < 0)
-        printf("Error\n");
-    if (fcntl(srv->fd, F_SETFD, FD_CLOEXEC) < 0)
-        printf("Error\n");
-
-    if (setsockopt(srv->fd, SOL_SOCKET, SO_REUSEADDR,
-                   (const void *)&optval, sizeof(optval)) < 0)
-      printf("Error\n");
-
-
-    if (bind(srv->fd,  (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
-      printf("Error");
-
-    ecore_main_fd_handler_add(srv->fd, ECORE_FD_READ, _mqtt_server_data_cb, srv, NULL, NULL);
+    srv->fd6 = _create_server_udp_socket(PF_INET6, port, srv);
+    srv->fd4 = _create_server_udp_socket(PF_INET, port, srv);
 
     return srv;
-
 }
 
 void emqtt_sn_server_del(EMqtt_Sn_Server *srv)
