@@ -139,7 +139,7 @@ _mqtt_sn_client_publish_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         if (subscriber->topic->id == htons(msg->topic_id))
         {
             if (subscriber->topic_received_cb)
-	      subscriber->topic_received_cb(subscriber->data, client, subscriber->topic->name, data);
+                subscriber->topic_received_cb(subscriber->data, client, subscriber->topic->name, data);
         }
     }
 }
@@ -301,7 +301,7 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
         msg->protocol_id = 1;
         msg->duration = htons((uint16_t)keepalive);
         client->connected_received_cb = connected_cb;
-	client->data = data;
+        client->data = data;
         client->keepalive = keepalive;
         snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
         msg->header.len = sizeof(msg) + strlen(client->name);
