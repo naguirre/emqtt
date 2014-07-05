@@ -35,14 +35,14 @@ _mqtt_timeout_connect_cb(void *data)
         printf("Send %d bytes to %s\n", msg->header.len, client->server_addr.sa_data);
 
         client->connection_state = CONNECTION_IN_PROGRESS;
-        client->connected_received_cb(client, client->connection_state);
+        client->connected_received_cb(client->data, client, client->connection_state);
 
         (client->connection_retry)++;
     }
     else
     {
         client->connection_state = CONNECTION_ERROR;
-        client->connected_received_cb(client, client->connection_state);
+        client->connected_received_cb(client->data, client, client->connection_state);
         client->timeout = ecore_timer_del(client->timeout);
         client->connection_retry = 0;
     }
@@ -70,7 +70,7 @@ _mqtt_sn_connack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         client->keepalive_timer = ecore_timer_add(client->keepalive, _mqtt_keepalive_timer_cb, client);
     }
 
-    client->connected_received_cb(client, client->connection_state);
+    client->connected_received_cb(client->data, client, client->connection_state);
 
 }
 
@@ -112,7 +112,7 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 	    if (subscriber->topic->id == htons(msg->topic_id))
 	    {
 	        if (subscriber->subscribe_error_cb)
-	            subscriber->subscribe_error_cb(ERROR);
+		    subscriber->subscribe_error_cb(client->data, ERROR);
 	    }
         }
         return;
@@ -124,7 +124,7 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 	    if (subscriber->topic->id == htons(msg->topic_id))
 	    {
 	        if (subscriber->subscribe_error_cb)
-		    subscriber->subscribe_error_cb(ACCEPTED);
+		    subscriber->subscribe_error_cb(client->data, ACCEPTED);
 	    }
         }
     }
@@ -160,7 +160,7 @@ _mqtt_sn_client_publish_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         if (subscriber->topic->id == htons(msg->topic_id))
         {
             if (subscriber->topic_received_cb)
-                subscriber->topic_received_cb(subscriber->data, client, subscriber->topic->name, data);
+	      subscriber->topic_received_cb(subscriber->data, client, subscriber->topic->name, data);
         }
     }
 }
@@ -322,6 +322,7 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
         msg->protocol_id = 1;
         msg->duration = htons((uint16_t)keepalive);
         client->connected_received_cb = connected_cb;
+	client->data = data;
         client->keepalive = keepalive;
         snprintf(d + sizeof(msg), sizeof(d) - sizeof(msg), "%s", client->name);
         msg->header.len = sizeof(msg) + strlen(client->name);

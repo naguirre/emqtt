@@ -231,7 +231,8 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     cdata = calloc(1, sizeof(Mqtt_Client_Data));
 
     len = sizeof(cdata->client_addr);
-    cdata->len = recvfrom(srv->fd, cdata->data, READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
+
+    cdata->len = recvfrom(srv->fd, cdata->data,READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
 
     header = (EMqtt_Sn_Small_Header *)cdata->data;
 

@@ -11,12 +11,12 @@ void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, 
 
 }
 
-void _suback_received_cb(EMqtt_Sn_Client_Subscribe_Error_Cb subscribe_error_cb)
+void _suback_received_cb(void *data, EMqtt_Sn_Client_Subscribe_Error_Cb subscribe_error_cb)
 {
     printf("SUBACK : %d\n", subscribe_error_cb);
 }
 
-void _connect_received_cb(EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state)
+void _connect_received_cb(void *data, EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state)
 {
   printf("State: %d\n",connection_state);
   if(connection_state == CONNECTION_ACCEPTED){
