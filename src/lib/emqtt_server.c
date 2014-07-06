@@ -53,6 +53,35 @@ _mqtt_send_data(EMqtt_Sn_Connected_Client *cl, const char *data, int len)
 }
 
 static void
+_mqtt_sn_advertise_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
+{
+    EMqtt_Sn_Advertise_Msg *msg;
+
+    msg = (EMqtt_Sn_Advertise_Msg *)cdata->data;
+    if (msg->gw_id == srv->gw_id)
+    {
+        printf("Receive ADVERTISE from myself\n");
+    }
+}
+
+static void
+_mqtt_sn_searchgw_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
+{
+    EMqtt_Sn_Gwinfo_Msg resp;
+
+    resp.header.len = sizeof(resp);
+    resp.header.msg_type = EMQTT_SN_GWINFO;
+    resp.gw_id = srv->gw_id;
+
+    printf("[->] %s[%d]\t\t [%s:%s]\n",
+           mqttsn_msg_desc[resp.header.msg_type].name, resp.header.msg_type,
+           _get_ip((struct sockaddr*)&cdata->client_addr),
+           _get_port((struct sockaddr*)&cdata->client_addr));
+
+    send(cdata->fd, &resp, resp.header.len, 0);
+}
+
+static void
 _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Connected_Client *cl)
 {
     EMqtt_Sn_Connect_Msg *msg;
@@ -299,6 +328,13 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
         }
     }
 
+    if (header->msg_type > EMQTT_SN_SENTINEL)
+    {
+        free(cdata);
+        printf("Error malformed message ?\n");
+        return ECORE_CALLBACK_RENEW;
+
+    }
 
     printf("[<-] %s[%d]\t\t %s [%s:%s]\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type,
             cl ? cl->client_id : "Unknown client ",
@@ -307,6 +343,12 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 
     switch(header->msg_type)
     {
+    case EMQTT_SN_ADVERTISE:
+        _mqtt_sn_advertise_msg(srv, cdata);
+        break;
+    case EMQTT_SN_SEARCHGW:
+        _mqtt_sn_searchgw_msg(srv, cdata);
+        break;
     case EMQTT_SN_CONNECT:
         _mqtt_sn_connect_msg(srv, cdata, cl);
         break;
@@ -390,7 +432,41 @@ int _create_server_udp_socket(sa_family_t sa_family, unsigned short port, EMqtt_
     return fd;
 }
 
-EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
+static Eina_Bool
+_mqtt_advertise_cb(void *data)
+{
+    EMqtt_Sn_Advertise_Msg msg;
+    EMqtt_Sn_Server *srv = data;
+    int fd;
+    struct sockaddr_in sock_in;
+    int broadcast = 1;
+
+    memset(&sock_in, 0, sizeof(struct sockaddr_in));
+
+    fd = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    sock_in.sin_addr.s_addr = htonl(INADDR_ANY);
+    sock_in.sin_port = htons(0);
+    sock_in.sin_family = PF_INET;
+
+    bind(fd, (struct sockaddr *)&sock_in, sizeof(struct sockaddr_in));
+    setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(int));
+
+    sock_in.sin_addr.s_addr = htonl(-1); /* send message to 255.255.255.255 */
+    sock_in.sin_port = htons(srv->port); /* same port number as server ?*/
+    sock_in.sin_family = PF_INET;
+
+    msg.header.msg_type = EMQTT_SN_ADVERTISE;
+    msg.header.len = sizeof(msg);
+    msg.duration = htons(MQTT_T_ADV);
+    msg.gw_id = srv->gw_id;
+
+    sendto(fd, &msg, msg.header.len, 0, (struct sockaddr *)&sock_in, sizeof(struct sockaddr_in));
+
+    return ECORE_CALLBACK_RENEW;
+}
+
+EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port, unsigned char gw_id)
 {
     EMqtt_Sn_Server *srv;
 
@@ -403,6 +479,8 @@ EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port)
 
     srv->fd6 = _create_server_udp_socket(PF_INET6, port, srv);
     srv->fd4 = _create_server_udp_socket(PF_INET, port, srv);
+    srv->gw_id = gw_id;
+    srv->advertise_timer = ecore_timer_add(MQTT_T_ADV, _mqtt_advertise_cb, srv);
 
     return srv;
 }
@@ -414,6 +492,8 @@ void emqtt_sn_server_del(EMqtt_Sn_Server *srv)
 
     if (srv->addr)
         eina_stringshare_del(srv->addr);
+    if (srv->advertise_timer)
+        ecore_timer_del(srv->advertise_timer);
 
     free(srv);
 }
