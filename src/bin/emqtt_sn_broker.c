@@ -5,7 +5,7 @@ int
 main(void)
 {
   emqtt_init();
-  emqtt_sn_server_add("::", 1883);
+  emqtt_sn_server_add("::", 1883, 0x01);
 
   ecore_main_loop_begin();
 

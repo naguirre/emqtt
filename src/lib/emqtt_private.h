@@ -46,7 +46,8 @@ enum _EMqtt_Sn_MSG_TYPE
     EMQTT_SN_WILLTOPICUPD,
     EMQTT_SN_WILLTOPICRESP,
     EMQTT_SN_WILLMSGUPD,
-    EMQTT_SN_WILLMSGRESP
+    EMQTT_SN_WILLMSGRESP,
+    EMQTT_SN_SENTINEL
 };
 
 struct _EMqtt_Sn_Msg_Desc
@@ -61,9 +62,11 @@ struct _EMqtt_Sn_Server
 {
     const char *addr;
     unsigned short port;
+    unsigned char gw_id;
     int fd6;
     int fd4;
     Eina_List *connected_clients;
+    Ecore_Timer *advertise_timer;
 };
 
 struct _EMqtt_Sn_Client
@@ -78,7 +81,6 @@ struct _EMqtt_Sn_Client
     Eina_List *subscribers;
     Eina_List *topics;
     uint16_t last_msg_id;
-
     EMqtt_Sn_CONNECTION_STATE connection_state;
     int connection_retry;
     Ecore_Timer *timeout;
@@ -175,8 +177,7 @@ struct _EMqtt_Sn_Searchgw_Msg
 struct _EMqtt_Sn_Gwinfo_Msg
 {
     EMqtt_Sn_Small_Header header;
-    uint8_t radius;
-    char *data;
+    uint8_t gw_id;
 } __attribute__((packed));
 
 struct _EMqtt_Sn_Connect_Msg
@@ -351,5 +352,6 @@ struct _Server
 };
 
 #define READBUFSIZ 65536
+#define MQTT_T_ADV (15 * 60.0) /* greater than 15 minutes */
 
 #endif /* _EMQTT_PRIVATE_H */

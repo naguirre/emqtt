@@ -62,7 +62,7 @@ typedef void (*EMqtt_Sn_Client_Subscribe_Error_Cb) (void *data, EMQTT_SN_ERROR_T
 
 EAPI int emqtt_init(void);
 EAPI int emqtt_shutdown(void);
-EAPI EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port);
+EAPI EMqtt_Sn_Server *emqtt_sn_server_add(char *addr, unsigned short port, unsigned char gw_id);
 EAPI void emqtt_sn_server_del(EMqtt_Sn_Server *srv);
 EAPI EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *client_name);
 EAPI void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Connect_Cb connected_cb, void *data, double keepalive);
