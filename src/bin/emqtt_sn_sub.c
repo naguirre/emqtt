@@ -8,12 +8,11 @@ void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, 
 {
     printf("TOPIC : %s\n", topic);
     printf("MSG : %s\n", value);
-
 }
 
-void _suback_received_cb(void *data, EMqtt_Sn_Client_Subscribe_Error_Cb subscribe_error_cb)
+void _suback_received_cb(void *data, EMqtt_Sn_ERROR_TYPE state)
 {
-    printf("SUBACK : %d\n", subscribe_error_cb);
+    printf("SUBACK : %d\n", state);
 }
 
 void _connect_received_cb(void *data, EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state)
