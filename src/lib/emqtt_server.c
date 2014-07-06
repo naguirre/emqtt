@@ -76,8 +76,8 @@ _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
     }
 
     resp.header.len = 0x03;
-    resp.header.msg_type = EMqtt_Sn_CONNACK;
-    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;  
+    resp.header.msg_type = EMQTT_SN_CONNACK;
+    resp.ret_code = EMQTT_SN_RETURN_CODE_ACCEPTED;
 
     _mqtt_send_data(cl, (const char*)&resp, sizeof(resp));
 }
@@ -104,16 +104,16 @@ _mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Co
         topic = emqtt_topic_new(topic_name, &cl->last_topic);
         cl->topics = eina_list_append(cl->topics, topic);
         resp.topic_id = htons(topic->id);
-        resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
+        resp.ret_code = EMQTT_SN_RETURN_CODE_ACCEPTED;
     }
     else
     {
         resp.topic_id = htons(topic->id);
-        resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
+        resp.ret_code = EMQTT_SN_RETURN_CODE_ACCEPTED;
     }
 
     resp.header.len = sizeof(EMqtt_Sn_Regack_Msg);
-    resp.header.msg_type = EMqtt_Sn_REGACK;
+    resp.header.msg_type = EMQTT_SN_REGACK;
     resp.msg_id = msg->msg_id;
 
     _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
@@ -144,10 +144,10 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
     memcpy(data, cdata->data + sizeof(EMqtt_Sn_Publish_Msg) , s);
 
     resp.header.len = sizeof(EMqtt_Sn_Puback_Msg);
-    resp.header.msg_type = EMqtt_Sn_PUBACK;
+    resp.header.msg_type = EMQTT_SN_PUBACK;
     resp.topic_id = msg->topic_id;
     resp.msg_id = msg->msg_id;
-    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
+    resp.ret_code = EMQTT_SN_RETURN_CODE_ACCEPTED;
 
     _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 
@@ -191,7 +191,7 @@ _mqtt_sn_pingreq_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
     EMqtt_Sn_Pingresp_Msg resp;
 
     resp.header.len = 2;
-    resp.header.msg_type = EMqtt_Sn_PINGRESP;
+    resp.header.msg_type = EMQTT_SN_PINGRESP;
 
     _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 }
@@ -202,7 +202,7 @@ _mqtt_sn_disconnect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_
     EMqtt_Sn_Disconnect_Msg resp;
 
     resp.header.len = 2;
-    resp.header.msg_type = EMqtt_Sn_DISCONNECT;
+    resp.header.msg_type = EMQTT_SN_DISCONNECT;
 
     _mqtt_send_data(cl, (const char*)&resp, resp.header.len);    
 }
@@ -255,11 +255,11 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_C
            topic->name, topic->id);
 
     resp.header.len = sizeof(EMqtt_Sn_Suback_Msg);
-    resp.header.msg_type = EMqtt_Sn_SUBACK;
+    resp.header.msg_type = EMQTT_SN_SUBACK;
     resp.flags = 0x00;
     resp.topic_id = htons(topic->id);
     resp.msg_id = msg->msg_id;
-    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
+    resp.ret_code = EMQTT_SN_RETURN_CODE_ACCEPTED;
 
     _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 }
@@ -307,22 +307,22 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 
     switch(header->msg_type)
     {
-    case EMqtt_Sn_CONNECT:
+    case EMQTT_SN_CONNECT:
         _mqtt_sn_connect_msg(srv, cdata, cl);
         break;
-    case EMqtt_Sn_REGISTER:
+    case EMQTT_SN_REGISTER:
         _mqtt_sn_register_msg(srv, cdata, cl);
         break;
-    case EMqtt_Sn_PUBLISH:
+    case EMQTT_SN_PUBLISH:
         _mqtt_sn_publish_msg(srv, cdata, cl);
         break;
-    case EMqtt_Sn_PINGREQ:
+    case EMQTT_SN_PINGREQ:
         _mqtt_sn_pingreq_msg(srv, cdata, cl);
         break;
-    case EMqtt_Sn_SUBSCRIBE:
+    case EMQTT_SN_SUBSCRIBE:
         _mqtt_sn_subscribe_msg(srv, cdata, cl);
         break;
-    case EMqtt_Sn_DISCONNECT:
+    case EMQTT_SN_DISCONNECT:
         _mqtt_sn_disconnect_msg(srv, cdata, cl);
         break;
     default:

@@ -22,7 +22,7 @@ _mqtt_keepalive_timer_cb(void *data)
     EMqtt_Sn_Pingreq_Msg msg;
 
     msg.header.len = 2;
-    msg.header.msg_type = EMqtt_Sn_PINGREQ;
+    msg.header.msg_type = EMQTT_SN_PINGREQ;
 
     _mqtt_send_data(client->fd, &msg, msg.header.len);
 
@@ -39,7 +39,7 @@ _mqtt_timeout_connect_cb(void *data)
     if(client->connection_retry < EMQTT_MAX_RETRY)
     {
         msg = (EMqtt_Sn_Connect_Msg *)d;
-        msg->header.msg_type = EMqtt_Sn_CONNECT;
+        msg->header.msg_type = EMQTT_SN_CONNECT;
         msg->flags = 0;
         msg->protocol_id = 1;
         msg->duration = client->keepalive;
@@ -73,7 +73,7 @@ _mqtt_sn_connack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 
     msg = (EMqtt_Sn_Connack_Msg *)cdata->data;
 
-    if (msg->ret_code != EMqtt_Sn_RETURN_CODE_ACCEPTED)
+    if (msg->ret_code != EMQTT_SN_RETURN_CODE_ACCEPTED)
     {
         printf("Error : connection not accepted by server\n");
         client->connection_state = CONNECTION_ERROR;
@@ -100,7 +100,7 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 
     msg = (EMqtt_Sn_Suback_Msg *)cdata->data;
 
-    if (msg->ret_code != EMqtt_Sn_RETURN_CODE_ACCEPTED)
+    if (msg->ret_code != EMQTT_SN_RETURN_CODE_ACCEPTED)
     {
         printf("Error : publish not accepted by server\n");
         EINA_LIST_FOREACH(client->subscribers, l, subscriber)
@@ -144,10 +144,10 @@ _mqtt_sn_client_publish_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     memcpy(value, cdata->data + sizeof(EMqtt_Sn_Publish_Msg) , s);
     printf("value : %s\n", value);
     resp.header.len = sizeof(EMqtt_Sn_Puback_Msg);
-    resp.header.msg_type = EMqtt_Sn_PUBACK;
+    resp.header.msg_type = EMQTT_SN_PUBACK;
     resp.topic_id = msg->topic_id;
     resp.msg_id = msg->msg_id;
-    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
+    resp.ret_code = EMQTT_SN_RETURN_CODE_ACCEPTED;
 
 
     _mqtt_send_data(client->fd, &resp, resp.header.len);
@@ -189,16 +189,16 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 
     switch(header->msg_type)
     {
-    case EMqtt_Sn_CONNACK:
+    case EMQTT_SN_CONNACK:
         _mqtt_sn_connack_msg(client, cdata);
         break;
-    case EMqtt_Sn_SUBACK:
+    case EMQTT_SN_SUBACK:
         _mqtt_sn_suback_msg(client, cdata);
         break;
-    case EMqtt_Sn_PUBLISH:
+    case EMQTT_SN_PUBLISH:
         _mqtt_sn_client_publish_msg(client, cdata);
         break;
-    case EMqtt_Sn_PINGRESP:
+    case EMQTT_SN_PINGRESP:
         break;
     default:
         printf("Unknown message\n");
@@ -307,7 +307,7 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
     if(client->connection_state != CONNECTION_IN_PROGRESS)
     {
         msg = (EMqtt_Sn_Connect_Msg *)d;
-        msg->header.msg_type = EMqtt_Sn_CONNECT;
+        msg->header.msg_type = EMQTT_SN_CONNECT;
         msg->flags = 0;
         msg->protocol_id = 1;
         msg->duration = htons((uint16_t)keepalive);
@@ -333,7 +333,7 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
 
     msg = (EMqtt_Sn_Subscribe_Msg *)d;
 
-    msg->header.msg_type = EMqtt_Sn_SUBSCRIBE;
+    msg->header.msg_type = EMQTT_SN_SUBSCRIBE;
     msg->flags = 0;
     msg->msg_id = client->last_msg_id++;
     snprintf(d + ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t))), sizeof(d) - ((sizeof(EMqtt_Sn_Subscribe_Msg) - sizeof(uint16_t))), "%s", topic_name);

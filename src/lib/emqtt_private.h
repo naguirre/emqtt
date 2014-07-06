@@ -17,36 +17,36 @@ typedef struct _EMqtt_Sn_Connected_Client EMqtt_Sn_Connected_Client;
 
 enum _EMqtt_Sn_MSG_TYPE
 {
-    EMqtt_Sn_ADVERTISE,
-    EMqtt_Sn_SEARCHGW,
-    EMqtt_Sn_GWINFO,
-    EMqtt_Sn_RESERVED1,
-    EMqtt_Sn_CONNECT,
-    EMqtt_Sn_CONNACK,
-    EMqtt_Sn_WILLTOPICREQ,
-    EMqtt_Sn_WILLTOPIC,
-    EMqtt_Sn_WILLMSGREQ,
-    EMqtt_Sn_WILLMSG,
-    EMqtt_Sn_REGISTER,
-    EMqtt_Sn_REGACK,
-    EMqtt_Sn_PUBLISH,
-    EMqtt_Sn_PUBACK,
-    EMqtt_Sn_PUBCOMP,
-    EMqtt_Sn_PUBREC,
-    EMqtt_Sn_PUBREL,
-    EMqtt_Sn_RESERVED2,
-    EMqtt_Sn_SUBSCRIBE,
-    EMqtt_Sn_SUBACK,
-    EMqtt_Sn_UNSUBSCRIBE,
-    EMqtt_Sn_UNSUBACK,
-    EMqtt_Sn_PINGREQ,
-    EMqtt_Sn_PINGRESP,
-    EMqtt_Sn_DISCONNECT,
-    EMqtt_Sn_RESERVED3,
-    EMqtt_Sn_WILLTOPICUPD,
-    EMqtt_Sn_WILLTOPICRESP,
-    EMqtt_Sn_WILLMSGUPD,
-    EMqtt_Sn_WILLMSGRESP
+    EMQTT_SN_ADVERTISE,
+    EMQTT_SN_SEARCHGW,
+    EMQTT_SN_GWINFO,
+    EMQTT_SN_RESERVED1,
+    EMQTT_SN_CONNECT,
+    EMQTT_SN_CONNACK,
+    EMQTT_SN_WILLTOPICREQ,
+    EMQTT_SN_WILLTOPIC,
+    EMQTT_SN_WILLMSGREQ,
+    EMQTT_SN_WILLMSG,
+    EMQTT_SN_REGISTER,
+    EMQTT_SN_REGACK,
+    EMQTT_SN_PUBLISH,
+    EMQTT_SN_PUBACK,
+    EMQTT_SN_PUBCOMP,
+    EMQTT_SN_PUBREC,
+    EMQTT_SN_PUBREL,
+    EMQTT_SN_RESERVED2,
+    EMQTT_SN_SUBSCRIBE,
+    EMQTT_SN_SUBACK,
+    EMQTT_SN_UNSUBSCRIBE,
+    EMQTT_SN_UNSUBACK,
+    EMQTT_SN_PINGREQ,
+    EMQTT_SN_PINGRESP,
+    EMQTT_SN_DISCONNECT,
+    EMQTT_SN_RESERVED3,
+    EMQTT_SN_WILLTOPICUPD,
+    EMQTT_SN_WILLTOPICRESP,
+    EMQTT_SN_WILLMSGUPD,
+    EMQTT_SN_WILLMSGRESP
 };
 
 struct _EMqtt_Sn_Msg_Desc
@@ -110,7 +110,7 @@ struct _EMqtt_Sn_Subscriber
     struct sockaddr_storage client_addr;
     uint16_t msg_id;
     void (*topic_received_cb) (void *data, EMqtt_Sn_Client *client, const char *topic, const char *value);
-    void (*subscribe_error_cb) (void *data, EMqtt_Sn_ERROR_TYPE state);
+    void (*subscribe_error_cb) (void *data, EMQTT_SN_ERROR_TYPE state);
     void *data;
 };
 
@@ -146,11 +146,11 @@ typedef struct _EMqtt_Sn_Willmsgresp_Msg EMqtt_Sn_Willmsgresp_Msg;
 
 enum _EMqtt_Sn_RETURN_CODE
 {
-    EMqtt_Sn_RETURN_CODE_ACCEPTED,
-    EMqtt_Sn_RETURN_CODE_CONGESTION,
-    EMqtt_Sn_RETURN_CODE_INVALID_TOPIC_ID,
-    EMqtt_Sn_RETURN_CODE_NOT_SUPPORTED,
-    EMqtt_Sn_RETURN_CODE_SENTINEL,
+    EMQTT_SN_RETURN_CODE_ACCEPTED,
+    EMQTT_SN_RETURN_CODE_CONGESTION,
+    EMQTT_SN_RETURN_CODE_INVALID_TOPIC_ID,
+    EMQTT_SN_RETURN_CODE_NOT_SUPPORTED,
+    EMQTT_SN_RETURN_CODE_SENTINEL,
 };
 
 struct _EMqtt_Sn_Small_Header

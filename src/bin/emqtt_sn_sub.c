@@ -7,7 +7,7 @@ void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, 
     printf("MSG : %s\n", value);
 }
 
-void _suback_received_cb(void *data, EMqtt_Sn_ERROR_TYPE state)
+void _suback_received_cb(void *data, EMQTT_SN_ERROR_TYPE state)
 {
     printf("SUBACK : %d\n", state);
 }
