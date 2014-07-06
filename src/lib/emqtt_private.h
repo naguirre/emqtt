@@ -63,9 +63,6 @@ struct _EMqtt_Sn_Server
     unsigned short port;
     int fd6;
     int fd4;
-    Eina_List *subscribers;
-    Eina_List *topics;
-    uint16_t last_topic;
     Eina_List *connected_clients;
 };
 
@@ -94,6 +91,9 @@ struct _EMqtt_Sn_Connected_Client
     const char *client_id;
     struct sockaddr_storage addr;
     int fd;
+    Eina_List *subscribers;
+    Eina_List *topics;
+    uint16_t last_topic;
 };
 
 struct _Mqtt_Client_Data
@@ -103,8 +103,6 @@ struct _Mqtt_Client_Data
     int fd;
     struct sockaddr_storage client_addr;
 };
-
-
 
 struct _EMqtt_Sn_Subscriber
 {
