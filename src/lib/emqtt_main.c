@@ -40,7 +40,6 @@ const EMqtt_Sn_Msg_Desc mqttsn_msg_desc[]=
     {EMQTT_SN_WILLMSGRESP, "WILLMSGRESP"},
 };
 
-
 int emqtt_init(void)
 {
     if (++_EMqttinit_count != 1)

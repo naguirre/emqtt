@@ -193,22 +193,57 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
 
     EINA_LIST_FOREACH(srv->connected_clients, l, con_cli)
     {
-        EMqtt_Sn_Publish_Msg *pub_msg = msg;
-
-        //pub_msg.header.len = sizeof(pub_msg);
-        //pub_msg.header.msg_type = EMqtt_Sn_PUBLISH;
-        //pub_msg.msg_id = 0x00;
-        //pub_msg.flags = 0x00;
-
         topic = emqtt_topic_name_get(topic_name, con_cli->topics);
         if (!topic)
-            continue;
-
-        printf("Find topic : %s[%d] %d\n", topic->name, topic->id, topic->subscribed);
-        if (topic->subscribed)
         {
-            pub_msg->topic_id = htons(topic->id);
-            _mqtt_send_data(con_cli, (const char*)pub_msg, pub_msg->header.len);
+            Eina_List *l2, *l2_next;
+            EMqtt_Sn_Topic *t;
+
+            EINA_LIST_FOREACH_SAFE(con_cli->topics, l2, l2_next, t)
+            {
+                printf("Test topic : %s | %s\n", t->name, topic_name);
+                if (emqtt_topic_matches(t->name , topic_name))
+                {
+                    EMqtt_Sn_Subscriber *subscriber;
+                    EMqtt_Sn_Register_Msg *reg_msg;
+                    char d[256];
+                    printf("Topic matches\n");
+
+                    topic = emqtt_topic_new(topic_name, &con_cli->last_topic);
+                    con_cli->topics = eina_list_append(con_cli->topics, topic);
+                    topic->subscribed = EINA_TRUE;
+
+                    subscriber = calloc(1, sizeof(EMqtt_Sn_Subscriber));
+                    subscriber->topic = topic;
+                    //subscriber->topic_received_cb = _mqtt_topic_regack_cb;
+                    //subscriber->data = cli;
+                    con_cli->subscribers = eina_list_append(con_cli->subscribers,
+                                                            subscriber);
+
+                    reg_msg = (EMqtt_Sn_Register_Msg*)d;
+                    reg_msg->header.len = sizeof(EMqtt_Sn_Register_Msg) + strlen(topic_name);
+                    reg_msg->header.msg_type = EMQTT_SN_REGISTER;
+                    reg_msg->msg_id = 0x00;
+                    reg_msg->topic_id = htons(topic->id);
+                    snprintf(d + sizeof(EMqtt_Sn_Register_Msg), sizeof(d) - sizeof(EMqtt_Sn_Register_Msg),
+                             "%s", topic_name);
+                    printf("%s %d\n", d + sizeof(EMqtt_Sn_Register_Msg), topic->id);
+                    _mqtt_send_data(con_cli, (void*)reg_msg, reg_msg->header.len);
+                }
+            }
+            return;
+
+        }
+        else
+        {
+            EMqtt_Sn_Publish_Msg *pub_msg = msg;
+
+            printf("Find topic : %s[%d] %d\n", topic->name, topic->id, topic->subscribed);
+            if (topic->subscribed)
+            {
+                pub_msg->topic_id = htons(topic->id);
+                _mqtt_send_data(con_cli, (const char*)pub_msg, pub_msg->header.len);
+            }
         }
     }
 
