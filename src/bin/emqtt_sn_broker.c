@@ -1,8 +1,5 @@
 
-#include <Ecore.h>
-#include <Ecore_Con.h>
-
-#include "EMqtt.h"
+#include <EMqtt.h>
 
 int
 main(void)

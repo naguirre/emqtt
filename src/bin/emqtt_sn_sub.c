@@ -1,8 +1,5 @@
 
-#include <Ecore.h>
-#include <Ecore_Con.h>
-
-#include "EMqtt.h"
+#include <EMqtt.h>
 
 void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, const char *value)
 {
