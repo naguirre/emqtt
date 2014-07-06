@@ -93,6 +93,7 @@ struct _EMqtt_Sn_Connected_Client
 {
     const char *client_id;
     struct sockaddr_storage addr;
+    int fd;
 };
 
 struct _Mqtt_Client_Data

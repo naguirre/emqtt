@@ -26,6 +26,21 @@ const char *_get_ip(const struct sockaddr *addr)
     return eina_stringshare_add(clienthost);
 }
 
+
+static Eina_Bool
+_mqtt_send_data(EMqtt_Sn_Connected_Client *cl, const char *data, int len)
+{
+    EMqtt_Sn_Small_Header *header = (EMqtt_Sn_Small_Header *)data;
+
+    printf("Send Message : to %s[%s:%s]\n",
+           cl ? cl->client_id : "Unknown client",
+           _get_ip((struct sockaddr*)&cl->addr),
+           _get_port((struct sockaddr*)&cl->addr));
+
+    sendto(cl->fd, data, len, 0,
+           (struct sockaddr*)&cl->addr, sizeof(cl->addr));
+}
+
 static Eina_Bool
 _mqtt_subscriber_name_exists(Mqtt_Client_Data *cdata, const char *name, Eina_List *subscribers)
 {
@@ -74,6 +89,7 @@ _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
         srv->connected_clients = eina_list_append(srv->connected_clients, cl);
         cl->client_id = eina_stringshare_nprintf(s, "%s", cdata->data + sizeof(EMqtt_Sn_Connect_Msg));
         memcpy(&cl->addr, &cdata->client_addr, sizeof(cl->addr));
+        cl->fd = cdata->fd;
     }
     else
     {
@@ -82,15 +98,13 @@ _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
 
     resp.header.len = 0x03;
     resp.header.msg_type = EMqtt_Sn_CONNACK;
-    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
+    resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;  
 
-    printf("Send message connack to: %s:%s\n", _get_ip((struct sockaddr*)&cl->addr), _get_port((struct sockaddr*)&cl->addr));
-
-    sendto(cdata->fd, &resp, sizeof(resp), 0, (struct sockaddr*)&cl->addr, sizeof(cl->addr));
+    _mqtt_send_data(cl, (const char*)&resp, sizeof(resp));
 }
 
 static void
-_mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Connected_Client *cl)
 {
     EMqtt_Sn_Register_Msg *msg;
     EMqtt_Sn_Regack_Msg resp;
@@ -125,30 +139,20 @@ _mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.header.msg_type = EMqtt_Sn_REGACK;
     resp.msg_id = msg->msg_id;
 
-    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 }
 
 static void
-_mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Connected_Client *cl)
 {
     EMqtt_Sn_Publish_Msg *msg;
     EMqtt_Sn_Puback_Msg resp;
     Eina_List *l;
     EMqtt_Sn_Subscriber *subscriber;
-    EMqtt_Sn_Connected_Client *cl_temp, *cl = NULL;
     char *data;
     size_t s;
 
     msg = (EMqtt_Sn_Publish_Msg*)cdata->data;
-
-    EINA_LIST_FOREACH(srv->connected_clients, l, cl_temp)
-    {
-        if (!memcmp(&cl_temp->addr, &cdata->client_addr, sizeof(struct sockaddr)))
-        {
-            cl = cl_temp;
-            break;
-        }
-    }
 
     if (!cl)
     {
@@ -166,43 +170,42 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.msg_id = msg->msg_id;
     resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
 
-    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 
     EINA_LIST_FOREACH(srv->subscribers, l, subscriber)
     {
         if (subscriber->topic->id == htons(msg->topic_id))
         {
-            printf("Header len : %d\n", msg->header.len);
-            sendto(cdata->fd, msg, msg->header.len, 0, (struct sockaddr *)&subscriber->client_addr, sizeof(subscriber->client_addr));
+            _mqtt_send_data(cl, (const char*)&msg, msg->header.len);
         }
     }
 
 }
 
 static void
-_mqtt_sn_pingreq_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_pingreq_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Connected_Client *cl)
 {
     EMqtt_Sn_Pingresp_Msg resp;
 
     resp.header.len = 2;
     resp.header.msg_type = EMqtt_Sn_PINGRESP;
 
-    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 }
 
 static void
-_mqtt_sn_disconnect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_disconnect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Connected_Client *cl)
 {
     EMqtt_Sn_Disconnect_Msg resp;
 
     resp.header.len = 2;
     resp.header.msg_type = EMqtt_Sn_DISCONNECT;
 
-    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+    _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 }
 
 static void
-_mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
+_mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Connected_Client *cl)
 {
     EMqtt_Sn_Subscribe_Msg *msg;
     EMqtt_Sn_Suback_Msg resp;
@@ -213,8 +216,6 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     EMqtt_Sn_Subscriber *subscriber;
     EMqtt_Sn_Topic *topic;
     Eina_Bool found = EINA_FALSE;
-
-    printf("Subscribe\n");
 
     msg = (EMqtt_Sn_Subscribe_Msg *)cdata->data;
     topic_id_type = msg->flags & 0x03;
@@ -255,7 +256,11 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
         srv->subscribers = eina_list_append(srv->subscribers, subscriber);
     }
 
-    printf("%s subscribe to topic %s[%d]\n", _get_ip( (struct sockaddr *)&cdata->client_addr), topic->name, topic->id);
+    printf("%s[%s:%s] subscribe to topic %s[%d]\n",
+           cl->client_id,
+           _get_ip( (struct sockaddr *)&cl->addr),
+           _get_port( (struct sockaddr *)&cl->addr),
+           topic->name, topic->id);
 
     resp.header.len = sizeof(EMqtt_Sn_Suback_Msg);
     resp.header.msg_type = EMqtt_Sn_SUBACK;
@@ -263,7 +268,8 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.topic_id = htons(topic->id);
     resp.msg_id = msg->msg_id;
     resp.ret_code = EMqtt_Sn_RETURN_CODE_ACCEPTED;
-    sendto(cdata->fd, &resp, resp.header.len, 0, (struct sockaddr *)&cdata->client_addr, sizeof(cdata->client_addr));
+
+    _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 }
 
 static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
@@ -290,8 +296,7 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 
     d = cdata->data;
 
-    printf("Receive Message : %s[%d] from %s:%s\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type,
-            _get_ip((struct sockaddr*)&cdata->client_addr), _get_port((struct sockaddr*)&cdata->client_addr));
+
 
     // Header
     if (header->len == 0x01)
@@ -303,18 +308,18 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 
     EINA_LIST_FOREACH(srv->connected_clients, l, cl_temp)
     {
-        if (!memcmp(&cl_temp->addr, &cdata->client_addr, len))
+        if (!memcmp(&cl_temp->addr, &cdata->client_addr, sizeof(struct sockaddr_storage)))
         {
             cl = cl_temp;
-            printf("Received data from client %s\n", cl->client_id);
             break;
         }
     }
 
-    if (!cl)
-    {
-        printf("Unknown client\n");
-    }
+
+    printf("Receive Message : %s[%d] from %s[%s:%s]\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type,
+            cl ? cl->client_id : "Unknown client",
+            _get_ip((struct sockaddr*)&cdata->client_addr), _get_port((struct sockaddr*)&cdata->client_addr));
+
 
     switch(header->msg_type)
     {
@@ -322,19 +327,19 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
         _mqtt_sn_connect_msg(srv, cdata, cl);
         break;
     case EMqtt_Sn_REGISTER:
-        _mqtt_sn_register_msg(srv, cdata);
+        _mqtt_sn_register_msg(srv, cdata, cl);
         break;
     case EMqtt_Sn_PUBLISH:
-        _mqtt_sn_publish_msg(srv, cdata);
+        _mqtt_sn_publish_msg(srv, cdata, cl);
         break;
     case EMqtt_Sn_PINGREQ:
-        _mqtt_sn_pingreq_msg(srv, cdata);
+        _mqtt_sn_pingreq_msg(srv, cdata, cl);
         break;
     case EMqtt_Sn_SUBSCRIBE:
-        _mqtt_sn_subscribe_msg(srv, cdata);
+        _mqtt_sn_subscribe_msg(srv, cdata, cl);
         break;
     case EMqtt_Sn_DISCONNECT:
-        _mqtt_sn_disconnect_msg(srv, cdata);
+        _mqtt_sn_disconnect_msg(srv, cdata, cl);
         break;
     default:
         printf("Unknown message\n");
