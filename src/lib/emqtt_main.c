@@ -53,9 +53,6 @@ int emqtt_init(void)
     if (!ecore_init ())
         return --_EMqttinit_count;
 
-    if (!ecore_con_init ())
-        return --_EMqttinit_count;
-
     return _EMqttinit_count;
 
 }
@@ -65,7 +62,6 @@ int emqtt_shutdown(void)
     if (--_EMqttinit_count != 0)
         return _EMqttinit_count;
 
-    ecore_con_shutdown();
     ecore_shutdown();
     eina_shutdown();
 

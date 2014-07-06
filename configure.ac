@@ -1,6 +1,7 @@
 AC_INIT(ecore-mqtt, 0.1.0, aguirre.nicolas@gmail.com)
 AC_PREREQ(2.52)
 AC_CONFIG_SRCDIR(configure.ac)
+AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE(1.6 dist-bzip2)
 AM_CONFIG_HEADER(config.h)
@@ -27,6 +28,17 @@ PKG_CHECK_MODULES([EMQTT], [
    ecore >= 1.2,
    ecore-con >= 1.2
 ])
+
+### Checks for linker characteristics
+lt_enable_auto_import=""
+case "${host_os}" in
+   mingw*)
+      lt_enable_auto_import="-Wl,--enable-auto-import"
+   ;;
+esac
+AC_SUBST([lt_enable_auto_import])
+
+EFL_CHECK_COMPILER_FLAGS([EMQTT], [-Wall -Wextra -Wno-unused-parameter -Wshadow -Wpointer-arith -Wno-missing-field-initializers -fvisibility=hidden -fdata-sections -ffunction-sections])
 
 AC_OUTPUT([
 emqtt.pc

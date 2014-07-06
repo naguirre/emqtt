@@ -5,6 +5,7 @@ AM_CPPFLAGS = \
 -DPACKAGE_BIN_DIR=\"$(bindir)\" \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
 -DPACKAGE_DATA_DIR=\"$(datadir)\" \
+-I$(top_srcdir)/src/lib \
 -I$(top_builddir)/src/lib \
 @EMQTT_CFLAGS@
 

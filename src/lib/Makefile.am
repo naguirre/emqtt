@@ -23,4 +23,4 @@ emqtt_topic.c
 
 libemqtt_la_LIBADD = @EMQTT_LIBS@
 
-libemqtt_la_LDFLAGS = -no-undefined -version-info @version_info@ @release_info@
+libemqtt_la_LDFLAGS = -no-undefined @lt_enable_auto_import@ -version-info @version_info@ @release_info@

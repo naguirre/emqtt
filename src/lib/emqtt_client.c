@@ -25,6 +25,8 @@ _mqtt_keepalive_timer_cb(void *data)
     msg.header.msg_type = EMqtt_Sn_PINGREQ;
 
     _mqtt_send_data(client->fd, &msg, msg.header.len);
+
+    return ECORE_CALLBACK_RENEW;
 }
 
 static Eina_Bool
@@ -57,9 +59,11 @@ _mqtt_timeout_connect_cb(void *data)
         client->connection_state = CONNECTION_ERROR;
         client->connected_received_cb(client->data, client, client->connection_state);
         client->timeout = ecore_timer_del(client->timeout);
+        client->timeout = NULL;
         client->connection_retry = 0;
+        return ECORE_CALLBACK_DONE;
     }
-
+    return ECORE_CALLBACK_RENEW;
 }
 
 static void
@@ -163,24 +167,15 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 {
     EMqtt_Sn_Client *client = data;
     EMqtt_Sn_Small_Header *header;
-    int i;
-    char fmt[32];
-    int fd;
     socklen_t len;
     Mqtt_Client_Data *cdata;
-
-
-    char* d;
-    struct sockaddr_in6 cliaddr;
 
     cdata = calloc(1, sizeof(Mqtt_Client_Data));
 
     len = sizeof(cdata->client_addr);
     cdata->len = recvfrom(client->fd, cdata->data,READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
 
-    header = (EMqtt_Sn_Small_Header *)cdata->data;
-
-    d = cdata->data;
+    header = (EMqtt_Sn_Small_Header *)cdata->data; 
 
     printf("[<-] %s[%d]\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type);
 
@@ -219,7 +214,6 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
 {
     EMqtt_Sn_Client *client;
     int optval;
-    int flags;
     struct addrinfo hints;
     struct addrinfo *res, *it;
     int ret;
@@ -251,11 +245,11 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
     ret =  getaddrinfo(client->addr, port_s, &hints, &res);
     if (ret != 0)
     {
-       printf("udpclient error for %s, %s: %s", client->addr, client->port, gai_strerror(ret));
+       printf("udpclient error for %s:%d: %s", client->addr, client->port, gai_strerror(ret));
     }
     else
     {
-        printf("res : %s %s\n", res->ai_addr, res->ai_canonname);
+        printf("res : %p %s\n", res->ai_addr, res->ai_canonname);
     }
 
     for (it = res; it != NULL; it = it->ai_next)
@@ -312,7 +306,6 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
 
     if(client->connection_state != CONNECTION_IN_PROGRESS)
     {
-        int i;
         msg = (EMqtt_Sn_Connect_Msg *)d;
         msg->header.msg_type = EMqtt_Sn_CONNECT;
         msg->flags = 0;
@@ -340,7 +333,6 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
 
     msg = (EMqtt_Sn_Subscribe_Msg *)d;
 
-    msg->header.len;
     msg->header.msg_type = EMqtt_Sn_SUBSCRIBE;
     msg->flags = 0;
     msg->msg_id = client->last_msg_id++;
