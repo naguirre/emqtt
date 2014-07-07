@@ -89,7 +89,7 @@ _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
     size_t s;
 
     msg = (EMqtt_Sn_Connect_Msg *)cdata->data;
-    s = msg->header.len - (sizeof(EMqtt_Sn_Connect_Msg));
+    s = msg->header.len - (sizeof(EMqtt_Sn_Connect_Msg)) + 1;
 
     if (!cl)
     {
