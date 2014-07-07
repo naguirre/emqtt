@@ -78,7 +78,8 @@ _mqtt_sn_searchgw_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
            _get_ip((struct sockaddr*)&cdata->client_addr),
            _get_port((struct sockaddr*)&cdata->client_addr));
 
-    send(cdata->fd, &resp, resp.header.len, 0);
+    sendto(cdata->fd, &resp, resp.header.len, 0,
+           (struct sockaddr*)&cdata->client_addr, sizeof(cdata->client_addr));
 }
 
 static void
