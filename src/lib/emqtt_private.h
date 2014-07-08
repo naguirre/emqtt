@@ -12,6 +12,7 @@
 typedef struct _EMqtt_Sn_Msg_Desc EMqtt_Sn_Msg_Desc;
 typedef enum _EMqtt_Sn_MSG_TYPE EMqtt_Sn_MSG_TYPE;
 typedef struct _EMqtt_Sn_Subscriber EMqtt_Sn_Subscriber;
+typedef struct _EMqtt_Sn_Publisher EMqtt_Sn_Publisher;
 typedef struct _Mqtt_Client_Data Mqtt_Client_Data;
 typedef struct _EMqtt_Sn_Connected_Client EMqtt_Sn_Connected_Client;
 
@@ -79,6 +80,7 @@ struct _EMqtt_Sn_Client
     Ecore_Timer *keepalive_timer;
     double keepalive;
     Eina_List *subscribers;
+    Eina_List *publishers;
     Eina_List *topics;
     uint16_t last_msg_id;
     EMqtt_Sn_CONNECTION_STATE connection_state;
@@ -113,6 +115,16 @@ struct _EMqtt_Sn_Subscriber
     uint16_t msg_id;
     void (*topic_received_cb) (void *data, EMqtt_Sn_Client *client, const char *topic, const char *value);
     void (*subscribe_error_cb) (void *data, EMQTT_SN_ERROR_TYPE state);
+    void *data;
+};
+
+
+struct _EMqtt_Sn_Publisher
+{
+    EMqtt_Sn_Topic *topic;
+    uint16_t msg_id;
+    EMqtt_Sn_REGISTER_STATE register_state;
+    void (*suback_received_cb) (void *data, EMqtt_Sn_Client *client);
     void *data;
 };
 
