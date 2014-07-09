@@ -232,7 +232,6 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
                     _mqtt_send_data(con_cli, (void*)reg_msg, reg_msg->header.len);
                 }
             }
-            return;
 
         }
         else
