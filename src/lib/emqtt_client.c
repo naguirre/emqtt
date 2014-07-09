@@ -164,7 +164,7 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         printf("Error : publish not accepted by server\n");
         EINA_LIST_FOREACH(client->subscribers, l, subscriber)
         {
-	    if (subscriber->topic->id == htons(msg->topic_id))
+	    if (subscriber->msg_id == msg->msg_id)
 	    {
 	        if (subscriber->subscribe_error_cb)
 		    subscriber->subscribe_error_cb(client->data, ERROR);
@@ -176,10 +176,13 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     {
         EINA_LIST_FOREACH(client->subscribers, l, subscriber)
         {
-	    if (subscriber->topic->id == htons(msg->topic_id))
+	    if (subscriber->msg_id == msg->msg_id)
 	    {
 	        if (subscriber->subscribe_error_cb)
+	        {
+		    subscriber->topic->id = htons(msg->topic_id);
 		    subscriber->subscribe_error_cb(client->data, ACCEPTED);
+		}
 	    }
         }
     }
