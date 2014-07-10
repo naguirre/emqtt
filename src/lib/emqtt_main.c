@@ -4,7 +4,9 @@
 #include "EMqtt.h"
 #include "emqtt_private.h"
 
-static int _EMqttinit_count = 0;
+static int _emqtt_init_count = 0;
+
+int _emqtt_log_dom_global = -1;
 
 const EMqtt_Sn_Msg_Desc mqttsn_msg_desc[]=
 {
@@ -42,35 +44,41 @@ const EMqtt_Sn_Msg_Desc mqttsn_msg_desc[]=
 
 int emqtt_init(void)
 {
-    if (++_EMqttinit_count != 1)
-        return _EMqttinit_count;
-
+    if (++_emqtt_init_count != 1)
+        return _emqtt_init_count;
 
     if (!eina_init ())
-        return --_EMqttinit_count;
+        return --_emqtt_init_count;
+
+    _emqtt_log_dom_global =
+        eina_log_domain_register("emqtt", EMQTT_DEFAULT_LOG_COLOR);
+    if (_emqtt_log_dom_global < 0)
+    {
+        EINA_LOG_ERR("Enna-Server Can not create a general log domain.");
+        goto shutdown_eina;
+    }
+    else
+      INF("EMqtt Init");
 
     if (!ecore_init ())
-        return --_EMqttinit_count;
+        goto shutdown_eina;
 
-    return _EMqttinit_count;
+    return _emqtt_init_count;
 
+shutdown_eina:
+    eina_shutdown ();
+    return --_emqtt_init_count;
 }
 
 int emqtt_shutdown(void)
 {
-    if (--_EMqttinit_count != 0)
-        return _EMqttinit_count;
+    INF("EMqtt Shutdown");
+
+    if (--_emqtt_init_count != 0)
+        return _emqtt_init_count;
 
     ecore_shutdown();
     eina_shutdown();
 
-    return _EMqttinit_count;
+    return _emqtt_init_count;
 }
-
-
-
-
-
-
-
-
