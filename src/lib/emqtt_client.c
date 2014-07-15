@@ -6,8 +6,8 @@ _mqtt_send_data(int fd, void *data, int len)
 {
     EMqtt_Sn_Small_Header *header = (EMqtt_Sn_Small_Header *)data;
 
-    printf("[->] %s[%d]\n",
-           mqttsn_msg_desc[header->msg_type].name, header->msg_type);
+    DBG("[->] %s[%d]",
+        mqttsn_msg_desc[header->msg_type].name, header->msg_type);
 
     send(fd, data, len, 0);
 
@@ -75,7 +75,7 @@ _mqtt_sn_connack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 
     if (msg->ret_code != EMQTT_SN_RETURN_CODE_ACCEPTED)
     {
-        printf("Error : connection not accepted by server\n");
+        ERR("Error : connection not accepted by server");
         client->connection_state = CONNECTION_ERROR;
     }
     else
@@ -103,7 +103,7 @@ _mqtt_sn_puback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 
     if (msg->ret_code != EMQTT_SN_RETURN_CODE_ACCEPTED)
     {
-        printf("Error : connection not accepted by server\n");
+        ERR("Error : connection not accepted by server");
     }
     else
     {
@@ -130,7 +130,7 @@ _mqtt_sn_regack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 
     if (msg->ret_code != EMQTT_SN_RETURN_CODE_ACCEPTED)
     {
-        printf("Error : register not accepted by server\n");
+        ERR("Error : register not accepted by server");
     }
     else
     {
@@ -161,7 +161,7 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
 
     if (msg->ret_code != EMQTT_SN_RETURN_CODE_ACCEPTED)
     {
-        printf("Error : publish not accepted by server\n");
+        ERR("Error : publish not accepted by server");
         EINA_LIST_FOREACH(client->subscribers, l, subscriber)
         {
 	    if (subscriber->msg_id == msg->msg_id)
@@ -204,7 +204,7 @@ _mqtt_sn_client_publish_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     value = calloc(1, s + 1);
 
     memcpy(value, cdata->data + sizeof(EMqtt_Sn_Publish_Msg) , s);
-    printf("value : %s\n", value);
+    DBG("value : %s", value);
     resp.header.len = sizeof(EMqtt_Sn_Puback_Msg);
     resp.header.msg_type = EMQTT_SN_PUBACK;
     resp.topic_id = msg->topic_id;
@@ -293,12 +293,12 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 
     header = (EMqtt_Sn_Small_Header *)cdata->data; 
 
-    printf("[<-] %s[%d]\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type);
+    DBG("[<-] %s[%d]", mqttsn_msg_desc[header->msg_type].name, header->msg_type);
 
     // Header
     if (header->len == 0x01)
     {
-        printf("Error long header not handle yet !\n");
+        CRIT("Error long header not handle yet !");
         free(cdata);
         return ECORE_CALLBACK_RENEW;
     }
@@ -326,7 +326,7 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     case EMQTT_SN_PINGRESP:
         break;
     default:
-        printf("Unknown message\n");
+        WRN("Unknown message");
         break;
     }
 
@@ -370,11 +370,11 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
     ret =  getaddrinfo(client->addr, port_s, &hints, &res);
     if (ret != 0)
     {
-       printf("udpclient error for %s:%d: %s", client->addr, client->port, gai_strerror(ret));
+       ERR("udpclient error for %s:%d: %s", client->addr, client->port, gai_strerror(ret));
     }
     else
     {
-        printf("res : %p %s\n", res->ai_addr, res->ai_canonname);
+        DBG("res : %p %s", res->ai_addr, res->ai_canonname);
     }
 
     for (it = res; it != NULL; it = it->ai_next)
@@ -391,7 +391,7 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
 
     if (it == NULL)
     {
-        perror("Could not connect to remote host.\n");
+        perror("Could not connect to remote host.");
         return NULL;
     }
 
@@ -407,13 +407,13 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
     }
 
     if (fcntl(client->fd, F_SETFL, O_NONBLOCK) < 0)
-      perror("setsockoption\n");
+      ERR("setsockoption");
     if (fcntl(client->fd, F_SETFD, FD_CLOEXEC) < 0)
-      perror("setsockoption\n");
+      ERR("setsockoption");
 
     if (setsockopt(client->fd, SOL_SOCKET, SO_REUSEADDR,
                    (const void *)&optval, sizeof(optval)) < 0)
-      perror("setsockoption\n");
+      ERR("setsockoption");
 
     ecore_main_fd_handler_add(client->fd, ECORE_FD_READ, _mqtt_client_data_cb, client, NULL, NULL);
 

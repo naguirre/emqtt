@@ -34,18 +34,18 @@ _mqtt_send_data(EMqtt_Sn_Connected_Client *cl, const char *data, int len)
 
     if (!cl)
     {
-        printf("Try to send data to unknown client\n");
+        WRN("Try to send data to unknown client");
         return EINA_FALSE;
     }
 
    /*printf("data[0][1] 0x%02X 0x%02X\n", data[0], data[1]);
     printf("HEader : %s %d\n", mqttsn_msg_desc[header->msg_type].name, header->len);*/
 
-    printf("[->] %s[%d]\t\t %s [%s:%s]\n",
-           mqttsn_msg_desc[header->msg_type].name, header->msg_type,
-           cl ? cl->client_id : "Unknown client",
-           _get_ip((struct sockaddr*)&cl->addr),
-           _get_port((struct sockaddr*)&cl->addr));
+    DBG("[->] %s[%d]\t\t %s [%s:%s]",
+        mqttsn_msg_desc[header->msg_type].name, header->msg_type,
+        cl ? cl->client_id : "Unknown client",
+        _get_ip((struct sockaddr*)&cl->addr),
+        _get_port((struct sockaddr*)&cl->addr));
 
     sendto(cl->fd, data, len, 0,
            (struct sockaddr*)&cl->addr, sizeof(cl->addr));
@@ -60,7 +60,7 @@ _mqtt_sn_advertise_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     msg = (EMqtt_Sn_Advertise_Msg *)cdata->data;
     if (msg->gw_id == srv->gw_id)
     {
-        printf("Receive ADVERTISE from myself\n");
+        DBG("Receive ADVERTISE from myself");
     }
 }
 
@@ -73,10 +73,10 @@ _mqtt_sn_searchgw_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
     resp.header.msg_type = EMQTT_SN_GWINFO;
     resp.gw_id = srv->gw_id;
 
-    printf("[->] %s[%d]\t\t [%s:%s]\n",
-           mqttsn_msg_desc[resp.header.msg_type].name, resp.header.msg_type,
-           _get_ip((struct sockaddr*)&cdata->client_addr),
-           _get_port((struct sockaddr*)&cdata->client_addr));
+    DBG("[->] %s[%d]\t\t [%s:%s]",
+        mqttsn_msg_desc[resp.header.msg_type].name, resp.header.msg_type,
+        _get_ip((struct sockaddr*)&cdata->client_addr),
+        _get_port((struct sockaddr*)&cdata->client_addr));
 
     sendto(cdata->fd, &resp, resp.header.len, 0,
            (struct sockaddr*)&cdata->client_addr, sizeof(cdata->client_addr));
@@ -102,7 +102,7 @@ _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
     }
     else
     {
-        printf("Try to reconnect a known client ? \n");
+        WRN("Try to reconnect a known client ? ");
     }
 
     resp.header.len = 0x03;
@@ -165,7 +165,7 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
 
     if (!cl)
     {
-        printf("Error : this client is not connected");
+        ERR("Error : this client is not connected");
         return;
     }
 
@@ -184,11 +184,11 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
     topic = emqtt_topic_id_get(htons(msg->topic_id), cl->topics);
     if (!topic || !topic->name)
     {
-        printf("Topic is NULL !");
+        ERR("Topic is NULL !");
     }
     else
     {
-        printf("Publish %s with value %s\n", topic->name, data);
+        INF("Publish %s with value %s", topic->name, data);
         topic_name = topic->name;
     }
 
@@ -202,13 +202,13 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
 
             EINA_LIST_FOREACH_SAFE(con_cli->topics, l2, l2_next, t)
             {
-                printf("Test topic : %s | %s\n", t->name, topic_name);
+                DBG("Test topic : %s | %s", t->name, topic_name);
                 if (emqtt_topic_matches(t->name , topic_name))
                 {
                     EMqtt_Sn_Subscriber *subscriber;
                     EMqtt_Sn_Register_Msg *reg_msg;
                     char d[256];
-                    printf("Topic matches\n");
+                    DBG("Topic matches");
 
                     topic = emqtt_topic_new(topic_name, &con_cli->last_topic);
                     con_cli->topics = eina_list_append(con_cli->topics, topic);
@@ -228,7 +228,7 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
                     reg_msg->topic_id = htons(topic->id);
                     snprintf(d + sizeof(EMqtt_Sn_Register_Msg), sizeof(d) - sizeof(EMqtt_Sn_Register_Msg),
                              "%s", topic_name);
-                    printf("%s %d\n", d + sizeof(EMqtt_Sn_Register_Msg), topic->id);
+                    DBG("%s %d", d + sizeof(EMqtt_Sn_Register_Msg), topic->id);
                     _mqtt_send_data(con_cli, (void*)reg_msg, reg_msg->header.len);
 
 
@@ -244,7 +244,7 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
         {
             EMqtt_Sn_Publish_Msg *pub_msg = msg;
 
-            printf("Find topic : %s[%d] %d\n", topic->name, topic->id, topic->subscribed);
+            DBG("Find topic : %s[%d] %d", topic->name, topic->id, topic->subscribed);
             if (topic->subscribed)
             {
                 pub_msg->topic_id = htons(topic->id);
@@ -318,11 +318,11 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_C
         topic->subscribed = EINA_TRUE;
     }
 
-    printf("%s[%s:%s] subscribe to topic %s[%d]\n",
-           cl->client_id,
-           _get_ip( (struct sockaddr *)&cl->addr),
-           _get_port( (struct sockaddr *)&cl->addr),
-           topic->name, topic->id);
+    INF("%s[%s:%s] subscribe to topic %s[%d]",
+        cl->client_id,
+        _get_ip( (struct sockaddr *)&cl->addr),
+        _get_port( (struct sockaddr *)&cl->addr),
+        topic->name, topic->id);
 
     resp.header.len = sizeof(EMqtt_Sn_Suback_Msg);
     resp.header.msg_type = EMQTT_SN_SUBACK;
@@ -355,7 +355,7 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     // Header
     if (header->len == 0x01)
     {
-        printf("Error long header not handle yet !\n");
+        CRIT("Error long header not handle yet !");
         free(cdata);
         return ECORE_CALLBACK_RENEW;
     }
@@ -372,14 +372,14 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     if (header->msg_type > EMQTT_SN_SENTINEL)
     {
         free(cdata);
-        printf("Error malformed message ?\n");
+        ERR("Error malformed message ?");
         return ECORE_CALLBACK_RENEW;
 
     }
 
-    printf("[<-] %s[%d]\t\t %s [%s:%s]\n", mqttsn_msg_desc[header->msg_type].name, header->msg_type,
-            cl ? cl->client_id : "Unknown client ",
-            _get_ip((struct sockaddr*)&cdata->client_addr), _get_port((struct sockaddr*)&cdata->client_addr));
+    DBG("[<-] %s[%d]\t\t %s [%s:%s]", mqttsn_msg_desc[header->msg_type].name, header->msg_type,
+        cl ? cl->client_id : "Unknown client ",
+        _get_ip((struct sockaddr*)&cdata->client_addr), _get_port((struct sockaddr*)&cdata->client_addr));
 
 
     switch(header->msg_type)
@@ -409,7 +409,7 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
         _mqtt_sn_disconnect_msg(srv, cdata, cl);
         break;
     default:
-        printf("Unknown message\n");
+        ERR("Unknown message");
         break;
     }
 
@@ -457,16 +457,16 @@ int _create_server_udp_socket(sa_family_t sa_family, unsigned short port, EMqtt_
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
-        printf("Error\n");
+        ERR("Error");
     if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)
-        printf("Error\n");
+        ERR("Error");
 
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
                    (const void *)&optval, sizeof(optval)) < 0)
-      printf("Error\n");
+      ERR("Error");
 
     if (bind(fd,  (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
-      printf("Error");
+      ERR("Error");
 
     ecore_main_fd_handler_add(fd, ECORE_FD_READ, _mqtt_server_data_cb, srv, NULL, NULL);
 

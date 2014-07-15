@@ -1,0 +1,4 @@
+Add error case for all network functions (bind, socket, recev, send...)
+Add documentation for API, and code
+
+
