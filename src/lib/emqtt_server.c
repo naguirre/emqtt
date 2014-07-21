@@ -230,6 +230,12 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
                              "%s", topic_name);
                     DBG("%s %d", d + sizeof(EMqtt_Sn_Register_Msg), topic->id);
                     _mqtt_send_data(con_cli, (void*)reg_msg, reg_msg->header.len);
+
+
+		    // send publish to the client
+		    EMqtt_Sn_Publish_Msg *pub_msg = msg;
+		    pub_msg->topic_id = htons(topic->id);
+		    _mqtt_send_data(con_cli, (const char*)pub_msg, pub_msg->header.len);
                 }
             }
 

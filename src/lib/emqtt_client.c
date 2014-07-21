@@ -221,9 +221,63 @@ _mqtt_sn_client_publish_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
             if (subscriber->topic_received_cb)
                 subscriber->topic_received_cb(subscriber->data, client, subscriber->topic->name, value);
         }
+        else
+        {
+	    EMqtt_Sn_Topic *topic = emqtt_topic_id_get(htons(msg->topic_id), client->topics);
+	    if (emqtt_topic_matches(subscriber->topic->name, topic->name))
+	    {
+	        if (subscriber->topic_received_cb)
+                    subscriber->topic_received_cb(subscriber->data, client, topic->name, value);
+	    }
+
+        }
     }
     free(value);
 }
+
+
+
+static void
+_mqtt_sn_register_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
+{
+    EMqtt_Sn_Register_Msg *msg;
+    EMqtt_Sn_Regack_Msg resp;
+    EMqtt_Sn_Topic *topic;
+    char *topic_name;
+    size_t s;
+    EMqtt_Sn_Subscriber *subscriber;
+
+    msg = (EMqtt_Sn_Register_Msg*)cdata->data;
+
+    s = msg->header.len - (sizeof(EMqtt_Sn_Register_Msg));
+    topic_name = calloc(1, s + 1);
+    memcpy(topic_name, cdata->data + sizeof(EMqtt_Sn_Register_Msg) , s);
+
+    topic = emqtt_topic_name_get(topic_name, client->topics);
+    if (!topic)
+        /* Create the new topic */
+    {
+        topic = emqtt_topic_new(topic_name, NULL);
+        topic->id = htons(msg->topic_id);
+        client->topics = eina_list_append(client->topics, topic);
+        resp.topic_id = htons(topic->id);
+        resp.ret_code = EMQTT_SN_RETURN_CODE_ACCEPTED;
+
+    }
+    else
+    {
+        resp.topic_id = htons(topic->id);
+        resp.ret_code = EMQTT_SN_RETURN_CODE_ACCEPTED;
+    }
+
+    resp.header.len = sizeof(EMqtt_Sn_Regack_Msg);
+    resp.header.msg_type = EMQTT_SN_REGACK;
+    resp.msg_id = msg->msg_id;
+
+    _mqtt_send_data(client, (const char*)&resp, resp.header.len);
+
+}
+
 
 static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
 {
@@ -256,6 +310,9 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
         break;
     case EMQTT_SN_PUBACK:
         _mqtt_sn_puback_msg(client, cdata);
+        break;
+    case EMQTT_SN_REGISTER:
+        _mqtt_sn_register_msg(client, cdata);
         break;
     case EMQTT_SN_REGACK:
         _mqtt_sn_regack_msg(client, cdata);
