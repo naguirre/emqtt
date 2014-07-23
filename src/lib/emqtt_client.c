@@ -267,7 +267,6 @@ _mqtt_sn_register_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     EMqtt_Sn_Topic *topic;
     char *topic_name;
     size_t s;
-    EMqtt_Sn_Subscriber *subscriber;
 
     msg = (EMqtt_Sn_Register_Msg*)cdata->data;
 
@@ -296,7 +295,7 @@ _mqtt_sn_register_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     resp.header.msg_type = EMQTT_SN_REGACK;
     resp.msg_id = msg->msg_id;
 
-    _mqtt_send_data(client, (const char*)&resp, resp.header.len);
+    _mqtt_send_data(client->fd, &resp, resp.header.len);
 
 }
 
@@ -517,22 +516,6 @@ static Eina_Bool
     }
     return EINA_FALSE;
 }
-
-
-static EMqtt_Sn_Publisher *
-_emqtt_get_publisher(EMqtt_Sn_Client *client, const char *topic_name)
-{
-    Eina_List *l;
-    EMqtt_Sn_Publisher *publisher;
-
-    EINA_LIST_FOREACH(client->publishers, l, publisher)
-    {
-        if (!strcmp(topic_name, publisher->topic->name))
-	  return publisher;
-    }
-    return NULL;
-}
-
 
 static void emqtt_sn_client_register(EMqtt_Sn_Client *client, const char *topic_name, EMqtt_Sn_Client_Suback_Received_Cb suback_received_cb, void *data)
 {
