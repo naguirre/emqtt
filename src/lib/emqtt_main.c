@@ -72,14 +72,14 @@ int emqtt_init(void)
         return --_emqtt_init_count;
 
     _emqtt_log_dom_global =
-        eina_log_domain_register("emqtt", EMQTT_DEFAULT_LOG_COLOR);
+            eina_log_domain_register("emqtt", EMQTT_DEFAULT_LOG_COLOR);
     if (_emqtt_log_dom_global < 0)
     {
         EINA_LOG_ERR("Enna-Server Can not create a general log domain.");
         goto shutdown_eina;
     }
     else
-      INF("EMqtt Init");
+        INF("EMqtt Init");
 
     if (!ecore_init ())
         goto shutdown_eina;

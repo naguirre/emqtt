@@ -51,10 +51,10 @@ Eina_Bool emqtt_topic_matches(const char *wild_topic, const char *topic)
          * we have to check whether the first character is / explicitly.
          */
     if ((wild_topic[0] == '/') && (topic[0] != '/'))
-            return EINA_FALSE;
+        return EINA_FALSE;
 
     if ((wild_topic[0] == '+') && (topic[0] == '/'))
-            return EINA_FALSE;
+        return EINA_FALSE;
 
     wild_topic_rw = strdup(wild_topic);
     topic_rw = strdup(topic);

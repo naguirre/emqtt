@@ -60,14 +60,14 @@ _mqtt_send_data(EMqtt_Sn_Connected_Client *cl, const char *data, int len)
         return EINA_FALSE;
     }
 
-   /*printf("data[0][1] 0x%02X 0x%02X\n", data[0], data[1]);
+    /*printf("data[0][1] 0x%02X 0x%02X\n", data[0], data[1]);
     printf("HEader : %s %d\n", mqttsn_msg_desc[header->msg_type].name, header->len);*/
 
     DBG("[->] %s[%d]\t\t %s [%s:%s]",
         mqttsn_msg_desc[header->msg_type].name, header->msg_type,
-        cl ? cl->client_id : "Unknown client",
-        _get_ip((struct sockaddr*)&cl->addr),
-        _get_port((struct sockaddr*)&cl->addr));
+            cl ? cl->client_id : "Unknown client",
+            _get_ip((struct sockaddr*)&cl->addr),
+            _get_port((struct sockaddr*)&cl->addr));
 
     sendto(cl->fd, data, len, 0,
            (struct sockaddr*)&cl->addr, sizeof(cl->addr));
@@ -97,8 +97,8 @@ _mqtt_sn_searchgw_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata)
 
     DBG("[->] %s[%d]\t\t [%s:%s]",
         mqttsn_msg_desc[resp.header.msg_type].name, resp.header.msg_type,
-        _get_ip((struct sockaddr*)&cdata->client_addr),
-        _get_port((struct sockaddr*)&cdata->client_addr));
+            _get_ip((struct sockaddr*)&cdata->client_addr),
+            _get_port((struct sockaddr*)&cdata->client_addr));
 
     sendto(cdata->fd, &resp, resp.header.len, 0,
            (struct sockaddr*)&cdata->client_addr, sizeof(cdata->client_addr));
@@ -141,7 +141,7 @@ _mqtt_sn_register_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Co
     EMqtt_Sn_Regack_Msg resp;
     EMqtt_Sn_Topic *topic;
     char *topic_name;
-    size_t s;    
+    size_t s;
 
     msg = (EMqtt_Sn_Register_Msg*)cdata->data;
 
@@ -254,10 +254,10 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
                     _mqtt_send_data(con_cli, (void*)reg_msg, reg_msg->header.len);
 
 
-		    // send publish to the client
-		    EMqtt_Sn_Publish_Msg *pub_msg = msg;
-		    pub_msg->topic_id = htons(topic->id);
-		    _mqtt_send_data(con_cli, (const char*)pub_msg, pub_msg->header.len);
+                    // send publish to the client
+                    EMqtt_Sn_Publish_Msg *pub_msg = msg;
+                    pub_msg->topic_id = htons(topic->id);
+                    _mqtt_send_data(con_cli, (const char*)pub_msg, pub_msg->header.len);
                 }
             }
 
@@ -296,7 +296,7 @@ _mqtt_sn_disconnect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_
     resp.header.len = 2;
     resp.header.msg_type = EMQTT_SN_DISCONNECT;
 
-    _mqtt_send_data(cl, (const char*)&resp, resp.header.len);    
+    _mqtt_send_data(cl, (const char*)&resp, resp.header.len);
 }
 
 static void
@@ -305,7 +305,7 @@ _mqtt_sn_subscribe_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_C
     EMqtt_Sn_Subscribe_Msg *msg;
     EMqtt_Sn_Suback_Msg resp;
     uint8_t topic_id_type;
-    char *topic_name = NULL;  
+    char *topic_name = NULL;
     EMqtt_Sn_Topic *topic;
 
     msg = (EMqtt_Sn_Subscribe_Msg *)cdata->data;
@@ -400,8 +400,8 @@ static Eina_Bool _mqtt_server_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     }
 
     DBG("[<-] %s[%d]\t\t %s [%s:%s]", mqttsn_msg_desc[header->msg_type].name, header->msg_type,
-        cl ? cl->client_id : "Unknown client ",
-        _get_ip((struct sockaddr*)&cdata->client_addr), _get_port((struct sockaddr*)&cdata->client_addr));
+            cl ? cl->client_id : "Unknown client ",
+            _get_ip((struct sockaddr*)&cdata->client_addr), _get_port((struct sockaddr*)&cdata->client_addr));
 
 
     switch(header->msg_type)
@@ -485,10 +485,10 @@ int _create_server_udp_socket(sa_family_t sa_family, unsigned short port, EMqtt_
 
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
                    (const void *)&optval, sizeof(optval)) < 0)
-      ERR("Error");
+        ERR("Error");
 
     if (bind(fd,  (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
-      ERR("Error");
+        ERR("Error");
 
     ecore_main_fd_handler_add(fd, ECORE_FD_READ, _mqtt_server_data_cb, srv, NULL, NULL);
 

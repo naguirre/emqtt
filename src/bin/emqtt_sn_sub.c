@@ -59,34 +59,34 @@ void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, 
 
 void _connect_received_cb(void *data, EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state)
 {
-  printf("State: %d\n",connection_state);
-  if(connection_state == CONNECTION_ACCEPTED){
-    emqtt_sn_client_subscribe(client,"#", _topic_received_cb, _suback_received_cb, NULL);
-    /* emqtt_sn_client_subscribe(client,"temp", _topic_received_temp_cb, _suback_received_temp_cb, NULL); */
-    /* emqtt_sn_client_subscribe(client,"bumper", _topic_received_bumper_cb, _suback_received_bumper_cb, NULL); */
-  }
+    printf("State: %d\n",connection_state);
+    if(connection_state == CONNECTION_ACCEPTED){
+        emqtt_sn_client_subscribe(client,"#", _topic_received_cb, _suback_received_cb, NULL);
+        /* emqtt_sn_client_subscribe(client,"temp", _topic_received_temp_cb, _suback_received_temp_cb, NULL); */
+        /* emqtt_sn_client_subscribe(client,"bumper", _topic_received_bumper_cb, _suback_received_bumper_cb, NULL); */
+    }
 }
 
 
 void _puback_received_test_cb(void *data, EMqtt_Sn_Client *client)
 {
-  printf("PUBACK RECEIVED from test\n\n");
+    printf("PUBACK RECEIVED from test\n\n");
 }
 
 
 void _puback_received_state_cb(void *data, EMqtt_Sn_Client *client)
 {
-  printf("PUBACK RECEIVED from state\n\n");
+    printf("PUBACK RECEIVED from state\n\n");
 }
 
 
 static Eina_Bool
 _mqtt_publish_timer_cb(void *data)
 {
-  EMqtt_Sn_Client *client = (EMqtt_Sn_Client *)data;
-  emqtt_sn_client_send_publish(client, "test", "2738", _puback_received_test_cb, NULL);
-  emqtt_sn_client_send_publish(client, "state", "2739", _puback_received_state_cb, NULL);
-  return ECORE_CALLBACK_RENEW;
+    EMqtt_Sn_Client *client = (EMqtt_Sn_Client *)data;
+    emqtt_sn_client_send_publish(client, "test", "2738", _puback_received_test_cb, NULL);
+    emqtt_sn_client_send_publish(client, "state", "2739", _puback_received_state_cb, NULL);
+    return ECORE_CALLBACK_RENEW;
 }
 
 int

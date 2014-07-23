@@ -25,12 +25,12 @@
 int
 main(void)
 {
-  emqtt_init();
-  emqtt_sn_server_add("::", 1883, 0x01);
+    emqtt_init();
+    emqtt_sn_server_add("::", 1883, 0x01);
 
-  ecore_main_loop_begin();
+    ecore_main_loop_begin();
 
-  emqtt_shutdown();
+    emqtt_shutdown();
 
-  return 0;
+    return 0;
 }

@@ -133,7 +133,7 @@ _mqtt_sn_puback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         EINA_LIST_FOREACH(client->publishers, l, publisher)
         {
             if (publisher->topic->id == msg->topic_id)
-	        publisher->suback_received_cb(client->data, client);
+                publisher->suback_received_cb(client->data, client);
         }
 
     }
@@ -158,14 +158,14 @@ _mqtt_sn_regack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     {
 
         EINA_LIST_FOREACH(client->publishers, l, publisher)
-	{
-	    if(publisher->msg_id == msg->msg_id ){
-	        publisher->topic->id = msg->topic_id;
-	        //printf("TOPIC -> ID: %d\t NAME: %s\n",publisher->topic->id, publisher->topic->name);
-	        publisher->register_state = REGISTER_ACCEPTED;
-	    }
+        {
+            if(publisher->msg_id == msg->msg_id ){
+                publisher->topic->id = msg->topic_id;
+                //printf("TOPIC -> ID: %d\t NAME: %s\n",publisher->topic->id, publisher->topic->name);
+                publisher->register_state = REGISTER_ACCEPTED;
+            }
 
-	}
+        }
 
     }
 
@@ -186,11 +186,11 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         ERR("Error : publish not accepted by server");
         EINA_LIST_FOREACH(client->subscribers, l, subscriber)
         {
-	    if (subscriber->msg_id == msg->msg_id)
-	    {
-	        if (subscriber->subscribe_error_cb)
-		    subscriber->subscribe_error_cb(client->data, ERROR);
-	    }
+            if (subscriber->msg_id == msg->msg_id)
+            {
+                if (subscriber->subscribe_error_cb)
+                    subscriber->subscribe_error_cb(client->data, ERROR);
+            }
         }
         return;
     }
@@ -198,14 +198,14 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     {
         EINA_LIST_FOREACH(client->subscribers, l, subscriber)
         {
-	    if (subscriber->msg_id == msg->msg_id)
-	    {
-	        if (subscriber->subscribe_error_cb)
-	        {
-		    subscriber->topic->id = htons(msg->topic_id);
-		    subscriber->subscribe_error_cb(client->data, ACCEPTED);
-		}
-	    }
+            if (subscriber->msg_id == msg->msg_id)
+            {
+                if (subscriber->subscribe_error_cb)
+                {
+                    subscriber->topic->id = htons(msg->topic_id);
+                    subscriber->subscribe_error_cb(client->data, ACCEPTED);
+                }
+            }
         }
     }
 }
@@ -245,12 +245,12 @@ _mqtt_sn_client_publish_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         }
         else
         {
-	    EMqtt_Sn_Topic *topic = emqtt_topic_id_get(htons(msg->topic_id), client->topics);
-	    if (emqtt_topic_matches(subscriber->topic->name, topic->name))
-	    {
-	        if (subscriber->topic_received_cb)
+            EMqtt_Sn_Topic *topic = emqtt_topic_id_get(htons(msg->topic_id), client->topics);
+            if (emqtt_topic_matches(subscriber->topic->name, topic->name))
+            {
+                if (subscriber->topic_received_cb)
                     subscriber->topic_received_cb(subscriber->data, client, topic->name, value);
-	    }
+            }
 
         }
     }
@@ -312,7 +312,7 @@ static Eina_Bool _mqtt_client_data_cb(void *data, Ecore_Fd_Handler *fd_handler)
     len = sizeof(cdata->client_addr);
     cdata->len = recvfrom(client->fd, cdata->data,READBUFSIZ, 0, (struct sockaddr *)&cdata->client_addr, &len);
 
-    header = (EMqtt_Sn_Small_Header *)cdata->data; 
+    header = (EMqtt_Sn_Small_Header *)cdata->data;
 
     DBG("[<-] %s[%d]", mqttsn_msg_desc[header->msg_type].name, header->msg_type);
 
@@ -391,7 +391,7 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
     ret =  getaddrinfo(client->addr, port_s, &hints, &res);
     if (ret != 0)
     {
-       ERR("udpclient error for %s:%d: %s", client->addr, client->port, gai_strerror(ret));
+        ERR("udpclient error for %s:%d: %s", client->addr, client->port, gai_strerror(ret));
     }
     else
     {
@@ -428,13 +428,13 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
     }
 
     if (fcntl(client->fd, F_SETFL, O_NONBLOCK) < 0)
-      ERR("setsockoption");
+        ERR("setsockoption");
     if (fcntl(client->fd, F_SETFD, FD_CLOEXEC) < 0)
-      ERR("setsockoption");
+        ERR("setsockoption");
 
     if (setsockopt(client->fd, SOL_SOCKET, SO_REUSEADDR,
                    (const void *)&optval, sizeof(optval)) < 0)
-      ERR("setsockoption");
+        ERR("setsockoption");
 
     ecore_main_fd_handler_add(client->fd, ECORE_FD_READ, _mqtt_client_data_cb, client, NULL, NULL);
 
@@ -504,7 +504,7 @@ void emqtt_sn_client_subscribe(EMqtt_Sn_Client *client, const char *topic_name, 
 }
 
 static Eina_Bool
- _emqtt_publisher_exist(EMqtt_Sn_Client *client, const char *topic_name)
+_emqtt_publisher_exist(EMqtt_Sn_Client *client, const char *topic_name)
 {
     Eina_List *l;
     EMqtt_Sn_Publisher *publisher;
@@ -512,7 +512,7 @@ static Eina_Bool
     EINA_LIST_FOREACH(client->publishers, l, publisher)
     {
         if (!strcmp(topic_name, publisher->topic->name))
-	  return EINA_TRUE;
+            return EINA_TRUE;
     }
     return EINA_FALSE;
 }
@@ -528,7 +528,7 @@ static void emqtt_sn_client_register(EMqtt_Sn_Client *client, const char *topic_
         return;
 
     if (_emqtt_publisher_exist(client,topic_name))
-      return;
+        return;
 
 
     msg = (EMqtt_Sn_Register_Msg *)d;
@@ -572,18 +572,18 @@ void emqtt_sn_client_send_publish(EMqtt_Sn_Client *client, const char *topic_nam
 
     EINA_LIST_FOREACH(client->publishers, l, publisher)
     {
-      if (!strcmp(topic_name, publisher->topic->name) && publisher->register_state == REGISTER_ACCEPTED){
-	  /* printf("PUBLISH ID: %d\t name: %s\n",publisher->topic->id, publisher->topic->name); */
-	  msg = (EMqtt_Sn_Publish_Msg *)d;
-	  msg->header.msg_type = EMQTT_SN_PUBLISH;
-	  msg->flags = 0;
-	  msg->topic_id = publisher->topic->id;
-	  msg->msg_id = (client->last_msg_id)++;
-	  snprintf(d + sizeof(EMqtt_Sn_Publish_Msg), sizeof(d) - sizeof(EMqtt_Sn_Publish_Msg), "%s", publish_data);
-	  msg->header.len = sizeof(EMqtt_Sn_Publish_Msg) + strlen(publish_data);
+        if (!strcmp(topic_name, publisher->topic->name) && publisher->register_state == REGISTER_ACCEPTED){
+            /* printf("PUBLISH ID: %d\t name: %s\n",publisher->topic->id, publisher->topic->name); */
+            msg = (EMqtt_Sn_Publish_Msg *)d;
+            msg->header.msg_type = EMQTT_SN_PUBLISH;
+            msg->flags = 0;
+            msg->topic_id = publisher->topic->id;
+            msg->msg_id = (client->last_msg_id)++;
+            snprintf(d + sizeof(EMqtt_Sn_Publish_Msg), sizeof(d) - sizeof(EMqtt_Sn_Publish_Msg), "%s", publish_data);
+            msg->header.len = sizeof(EMqtt_Sn_Publish_Msg) + strlen(publish_data);
 
-	  _mqtt_send_data(client->fd, msg, msg->header.len);
-      }
+            _mqtt_send_data(client->fd, msg, msg->header.len);
+        }
     }
 
 }
