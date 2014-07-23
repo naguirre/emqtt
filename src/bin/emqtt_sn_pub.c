@@ -21,62 +21,38 @@
 **
 ******************************************************************************/
 #include <EMqtt.h>
+#include <Ecore_Getopt.h>
 
-void _topic_received_temp_cb(void *data, EMqtt_Sn_Client *client, const char *topic, const char *value)
-{
-    printf("TEMP TOPIC : %s\n", topic);
-    printf("TEMP MSG : %s\n", value);
-}
+static Ecore_Timer *publish_timer = NULL;
+static char *topic = NULL;
+static char *value = NULL;
+static char *host = NULL;
+static int port;
 
-void _suback_received_temp_cb(void *data, EMQTT_SN_ERROR_TYPE state)
-{
-    printf("TEMP SUBACK : %d\n", state);
-}
-
-void _topic_received_bumper_cb(void *data, EMqtt_Sn_Client *client, const char *topic, const char *value)
-{
-    printf("BUMPER TOPIC : %s\n", topic);
-    printf("BUMPER MSG : %s\n", value);
-}
-
-void _suback_received_bumper_cb(void *data, EMQTT_SN_ERROR_TYPE state)
-{
-    printf("BUMPER SUBACK : %d\n", state);
-}
-
-
-void _suback_received_cb(void *data, EMQTT_SN_ERROR_TYPE state)
-{
-    printf("SUBACK : %d\n", state);
-}
-
-void _topic_received_cb(void *data, EMqtt_Sn_Client *client, const char *topic, const char *value)
-{
-    printf("TOPIC : %s\n", topic);
-    printf("MSG : %s\n", value);
-}
-
-
-void _connect_received_cb(void *data, EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state)
-{
-    printf("State: %d\n",connection_state);
-    if(connection_state == CONNECTION_ACCEPTED){
-        emqtt_sn_client_subscribe(client,"#", _topic_received_cb, _suback_received_cb, NULL);
-        /* emqtt_sn_client_subscribe(client,"temp", _topic_received_temp_cb, _suback_received_temp_cb, NULL); */
-        /* emqtt_sn_client_subscribe(client,"bumper", _topic_received_bumper_cb, _suback_received_bumper_cb, NULL); */
+static const Ecore_Getopt optdesc = {
+    "emqtt_sn_pub",
+    NULL,
+    "1.0",
+    "(C) 2014 Nicolas Aguirre & Julien Masson",
+    "GPLv2",
+    "emqtt_sn_pub is a test program for emqtt, and ca be used to publish values over an SN network.\n",
+    0,
+    {
+        ECORE_GETOPT_STORE_STR('h', "host", "Host to connect to."),
+        ECORE_GETOPT_STORE_INT('p', "port", "Host port."),
+        ECORE_GETOPT_STORE_STR('t', "topic", "Topic to publish."),
+        ECORE_GETOPT_STORE_STR('v', "value", "Value to publish."),
+        ECORE_GETOPT_LICENSE('L', "license"),
+        ECORE_GETOPT_COPYRIGHT('C', "copyright"),
+        ECORE_GETOPT_VERSION('V', "version"),
+        ECORE_GETOPT_HELP('h', "help"),
+        ECORE_GETOPT_SENTINEL
     }
-}
-
+};
 
 void _puback_received_test_cb(void *data, EMqtt_Sn_Client *client)
 {
-    printf("PUBACK RECEIVED from test\n\n");
-}
-
-
-void _puback_received_state_cb(void *data, EMqtt_Sn_Client *client)
-{
-    printf("PUBACK RECEIVED from state\n\n");
+    printf("Publish sent\n");
 }
 
 
@@ -84,28 +60,69 @@ static Eina_Bool
 _mqtt_publish_timer_cb(void *data)
 {
     EMqtt_Sn_Client *client = (EMqtt_Sn_Client *)data;
-    emqtt_sn_client_send_publish(client, "test", "2738", _puback_received_test_cb, NULL);
-    emqtt_sn_client_send_publish(client, "state", "2739", _puback_received_state_cb, NULL);
+    printf("Publish %s on topic %s\n", value, topic);
+    emqtt_sn_client_send_publish(client, topic, value, _puback_received_test_cb, NULL);
     return ECORE_CALLBACK_RENEW;
+}
+
+void _connect_received_cb(void *data, EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state)
+{
+    if (connection_state == CONNECTION_ACCEPTED)
+    {
+        printf("Connected\n");
+        if (!publish_timer)
+            publish_timer = ecore_timer_add(4.0, _mqtt_publish_timer_cb, client);
+    }
+    else
+    {
+        fprintf(stderr, "Error connecting to host %s:%d\n", host, port);
+        ecore_main_loop_quit();
+    }
 }
 
 int
 main(int argc, char **argv)
 {
+    Eina_Bool quit = EINA_FALSE;
     EMqtt_Sn_Client *client;
-    Ecore_Timer *publish_timer;
 
+    eina_init();
+    ecore_init();
     emqtt_init();
 
-    client = emqtt_sn_client_add(argv[1], atoi(argv[2]), "EMqtt Client");
-    if (!client)
+    Ecore_Getopt_Value values[] = {
+        ECORE_GETOPT_VALUE_STR(host),
+        ECORE_GETOPT_VALUE_INT(port),
+        ECORE_GETOPT_VALUE_STR(topic),
+        ECORE_GETOPT_VALUE_STR(value),
+        ECORE_GETOPT_VALUE_BOOL(quit),
+        ECORE_GETOPT_VALUE_BOOL(quit),
+        ECORE_GETOPT_VALUE_BOOL(quit),
+        ECORE_GETOPT_VALUE_BOOL(quit),
+        ECORE_GETOPT_VALUE_NONE
+    };
+
+
+    if (ecore_getopt_parse(&optdesc, values, argc, argv) < 0)
     {
-        printf("Erreur creating client! Exiting\n");
+        fprintf(stderr, "Failed to parse args\n");
         return EXIT_FAILURE;
     }
-    emqtt_sn_client_connect_send(client, _connect_received_cb, NULL, 10.0);
 
-    publish_timer = ecore_timer_add(4.0, _mqtt_publish_timer_cb, client);
+    if (quit)
+        return EXIT_SUCCESS;
+
+
+    printf("Connecting to host %s:%d\n", host, port);
+
+    client = emqtt_sn_client_add(host, port, "EMqtt Client");
+    if (!client)
+    {
+        fprintf(stderr, "Erreur creating client! Exiting\n");
+        return EXIT_FAILURE;
+    }
+
+    emqtt_sn_client_connect_send(client, _connect_received_cb, NULL, 10.0);
 
     ecore_main_loop_begin();
 
