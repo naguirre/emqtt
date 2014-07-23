@@ -26,14 +26,21 @@
 static Eina_Bool
 _mqtt_send_data(int fd, void *data, int len)
 {
+    int ret;
     EMqtt_Sn_Small_Header *header = (EMqtt_Sn_Small_Header *)data;
 
     DBG("[->] %s[%d]",
         mqttsn_msg_desc[header->msg_type].name, header->msg_type);
 
-    send(fd, data, len, 0);
+    ret = send(fd, data, len, 0);
+    if (ret != -1)
+        return EINA_TRUE;
 
-    return EINA_TRUE;
+    else
+    {
+        ERR("%s", strerror(errno));
+        return EINA_FALSE;
+    }
 }
 
 
