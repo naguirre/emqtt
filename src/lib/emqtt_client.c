@@ -141,8 +141,8 @@ _mqtt_sn_puback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         {
             if (publisher->topic->id == msg->topic_id)
             {
-	        if(publisher->suback_received_cb)
-		    publisher->suback_received_cb(client->data, client);
+                if (publisher->suback_received_cb)
+                    publisher->suback_received_cb(client->data, client);
             }
         }
 
