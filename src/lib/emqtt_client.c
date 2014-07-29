@@ -140,7 +140,10 @@ _mqtt_sn_puback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         EINA_LIST_FOREACH(client->publishers, l, publisher)
         {
             if (publisher->topic->id == msg->topic_id)
-                publisher->suback_received_cb(client->data, client);
+            {
+                if (publisher->suback_received_cb)
+                    publisher->suback_received_cb(client->data, client);
+            }
         }
 
     }
@@ -207,9 +210,9 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
         {
             if (subscriber->msg_id == msg->msg_id)
             {
+                subscriber->topic->id = htons(msg->topic_id);
                 if (subscriber->subscribe_error_cb)
                 {
-                    subscriber->topic->id = htons(msg->topic_id);
                     subscriber->subscribe_error_cb(client->data, ACCEPTED);
                 }
             }

@@ -258,6 +258,7 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
                     EMqtt_Sn_Publish_Msg *pub_msg = msg;
                     pub_msg->topic_id = htons(topic->id);
                     _mqtt_send_data(con_cli, (const char*)pub_msg, pub_msg->header.len);
+                    return;
                 }
             }
 
