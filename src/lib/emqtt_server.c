@@ -23,7 +23,6 @@
 #include "EMqtt.h"
 #include "emqtt_private.h"
 
-
 const char *_get_port(const struct sockaddr *addr)
 {
     char clientservice[NI_MAXSERV];
@@ -113,6 +112,20 @@ _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
 
     msg = (EMqtt_Sn_Connect_Msg *)cdata->data;
     s = msg->header.len - (sizeof(EMqtt_Sn_Connect_Msg)) + 1;
+
+    if (msg->flags & EMQTT_SN_FLAGS_WILL)
+    {
+        INF("Client asking for will topic and will message prompting\n");
+    }
+    if ((msg->flags & EMQTT_SN_FLAGS_CLEANSESSION) && cl)
+    {
+        EMqtt_Sn_Topic *topic;
+        INF("Client asking for clean session, cleaning known topics for this client\n");
+        EINA_LIST_FREE(cl->topics, topic)
+        {
+            emqtt_topic_free(topic);
+        }
+    }
 
     if (!cl)
     {

@@ -208,6 +208,9 @@ typedef struct _EMqtt_Sn_Willtopicresp_Msg EMqtt_Sn_Willtopicresp_Msg;
 typedef struct _EMqtt_Sn_Willmsgupd_Msg EMqtt_Sn_Willmsgupd_Msg;
 typedef struct _EMqtt_Sn_Willmsgresp_Msg EMqtt_Sn_Willmsgresp_Msg;
 
+#define EMQTT_SN_FLAGS_CLEANSESSION (1 << 2)
+#define EMQTT_SN_FLAGS_WILL (1 << 3)
+
 enum _EMqtt_Sn_RETURN_CODE
 {
     EMQTT_SN_RETURN_CODE_ACCEPTED,

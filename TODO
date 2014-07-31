@@ -1,4 +1,18 @@
 Add error case for all network functions (bind, socket, recev, send...)
 Add documentation for API, and code
 
+Server side :
+- Test clean session flag and behaviour when setted in client CONNECT message
+- Implement will topic and will message during CONNECT
+- Implement support of sleeping client
+
+Client side : 
+- Keep a list of known gateway/servers
+- Implement will topic / will mesasge
+- Implement clean session flag
+- Implement client's retransmission procedure (6.13)
+- Implement support of sleeping client
+
+
+
 

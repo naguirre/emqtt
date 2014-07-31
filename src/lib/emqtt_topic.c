@@ -112,6 +112,14 @@ emqtt_topic_new(const char *name, uint16_t *next_topic)
     return topic;
 }
 
+void
+emqtt_topic_free(EMqtt_Sn_Topic *topic)
+{
+    eina_stringshare_del(topic->name);
+    free(topic);
+}
+
+
 EMqtt_Sn_Topic *
 emqtt_topic_name_get(const char *topic_name, Eina_List *topics)
 {
