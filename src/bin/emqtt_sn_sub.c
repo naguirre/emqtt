@@ -84,8 +84,8 @@ static Eina_Bool
 _mqtt_publish_timer_cb(void *data)
 {
     EMqtt_Sn_Client *client = (EMqtt_Sn_Client *)data;
-    emqtt_sn_client_send_publish(client, "test", "2738", _puback_received_test_cb, NULL);
-    emqtt_sn_client_send_publish(client, "state", "2739", _puback_received_state_cb, NULL);
+    emqtt_sn_client_publish(client, "test", "2738", _puback_received_test_cb, NULL);
+    emqtt_sn_client_publish(client, "state", "2739", _puback_received_state_cb, NULL);
     return ECORE_CALLBACK_RENEW;
 }
 
@@ -103,12 +103,13 @@ main(int argc, char **argv)
         printf("Erreur creating client! Exiting\n");
         return EXIT_FAILURE;
     }
-    emqtt_sn_client_connect_send(client, _connect_received_cb, NULL, 10.0);
+    emqtt_sn_client_connect(client, _connect_received_cb, NULL, 10.0);
 
     publish_timer = ecore_timer_add(4.0, _mqtt_publish_timer_cb, client);
 
     ecore_main_loop_begin();
 
+    ecore_timer_del(publish_timer);
     emqtt_shutdown();
 
     return 0;

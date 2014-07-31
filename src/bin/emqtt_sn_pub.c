@@ -61,7 +61,7 @@ _mqtt_publish_timer_cb(void *data)
 {
     EMqtt_Sn_Client *client = (EMqtt_Sn_Client *)data;
     printf("Publish %s on topic %s\n", value, topic);
-    emqtt_sn_client_send_publish(client, topic, value, _puback_received_test_cb, NULL);
+    emqtt_sn_client_publish(client, topic, value, _puback_received_test_cb, NULL);
     return ECORE_CALLBACK_RENEW;
 }
 
@@ -122,7 +122,7 @@ main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    emqtt_sn_client_connect_send(client, _connect_received_cb, NULL, 10.0);
+    emqtt_sn_client_connect(client, _connect_received_cb, NULL, 10.0);
 
     ecore_main_loop_begin();
 

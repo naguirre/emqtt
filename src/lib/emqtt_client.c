@@ -452,7 +452,7 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
 
 }
 
-void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Connect_Cb connected_cb, void *data, double keepalive)
+void emqtt_sn_client_connect(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Connect_Cb connected_cb, void *data, double keepalive)
 {
     char d[256];
     EMqtt_Sn_Connect_Msg *msg;
@@ -567,7 +567,7 @@ static void emqtt_sn_client_register(EMqtt_Sn_Client *client, const char *topic_
 }
 
 
-void emqtt_sn_client_send_publish(EMqtt_Sn_Client *client, const char *topic_name, const char *publish_data, EMqtt_Sn_Client_Suback_Received_Cb suback_received_cb, void *data)
+void emqtt_sn_client_publish(EMqtt_Sn_Client *client, const char *topic_name, const char *publish_data, EMqtt_Sn_Client_Suback_Received_Cb suback_received_cb, void *data)
 {
     char d[256];
     EMqtt_Sn_Publish_Msg *msg;
