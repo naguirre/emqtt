@@ -67,7 +67,7 @@ _mqtt_publish_timer_cb(void *data)
 
 void _connect_received_cb(void *data, EMqtt_Sn_Client *client, EMQTT_SN_CONNECTION_STATE connection_state)
 {
-    if (connection_state == CONNECTION_ACCEPTED)
+    if (connection_state == EMQTT_SN_CONNECTION_ACCEPTED)
     {
         printf("Connected\n");
         if (!publish_timer)

@@ -78,14 +78,14 @@ _mqtt_timeout_connect_cb(void *data)
 
         _mqtt_send_data(client->fd, msg, msg->header.len);
 
-        client->connection_state = CONNECTION_IN_PROGRESS;
+        client->connection_state = EMQTT_SN_CONNECTION_IN_PROGRESS;
         client->connected_received_cb(client->data, client, client->connection_state);
 
         (client->connection_retry)++;
     }
     else
     {
-        client->connection_state = CONNECTION_ERROR;
+        client->connection_state = EMQTT_SN_CONNECTION_ERROR;
         client->connected_received_cb(client->data, client, client->connection_state);
         client->timeout = ecore_timer_del(client->timeout);
         client->timeout = NULL;
@@ -105,11 +105,11 @@ _mqtt_sn_connack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
     if (msg->ret_code != EMQTT_SN_RETURN_CODE_ACCEPTED)
     {
         ERR("Error : connection not accepted by server");
-        client->connection_state = CONNECTION_ERROR;
+        client->connection_state = EMQTT_SN_CONNECTION_ERROR;
     }
     else
     {
-        client->connection_state = CONNECTION_ACCEPTED;
+        client->connection_state = EMQTT_SN_CONNECTION_ACCEPTED;
         client->timeout = ecore_timer_del(client->timeout);
 
         /* Client now accepted, create a timer to launch Ping request each keepalive seconds */
@@ -172,7 +172,7 @@ _mqtt_sn_regack_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
             if(publisher->msg_id == msg->msg_id ){
                 publisher->topic->id = msg->topic_id;
                 //printf("TOPIC -> ID: %d\t NAME: %s\n",publisher->topic->id, publisher->topic->name);
-                publisher->register_state = REGISTER_ACCEPTED;
+                publisher->register_state = EMQTT_SN_REGISTER_ACCEPTED;
             }
 
         }
@@ -199,7 +199,7 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
             if (subscriber->msg_id == msg->msg_id)
             {
                 if (subscriber->subscribe_error_cb)
-                    subscriber->subscribe_error_cb(client->data, ERROR);
+                    subscriber->subscribe_error_cb(client->data, EMQTT_SN_ERROR);
             }
         }
         return;
@@ -213,7 +213,7 @@ _mqtt_sn_suback_msg(EMqtt_Sn_Client *client, Mqtt_Client_Data *cdata)
                 subscriber->topic->id = htons(msg->topic_id);
                 if (subscriber->subscribe_error_cb)
                 {
-                    subscriber->subscribe_error_cb(client->data, ACCEPTED);
+                    subscriber->subscribe_error_cb(client->data, EMQTT_SN_ACCEPTED);
                 }
             }
         }
@@ -385,7 +385,7 @@ EMqtt_Sn_Client *emqtt_sn_client_add(char *addr, unsigned short port, char *clie
     client->port = port;
     client->name = eina_stringshare_add(client_name);
     client->fd = socket(PF_INET6, SOCK_DGRAM, 0);
-    client->connection_state = CONNECTION_CLOSED;
+    client->connection_state = EMQTT_SN_CONNECTION_CLOSED;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC;
@@ -460,7 +460,7 @@ void emqtt_sn_client_connect_send(EMqtt_Sn_Client *client, EMqtt_Sn_Client_Conne
     if (!client)
         return;
 
-    if(client->connection_state != CONNECTION_IN_PROGRESS)
+    if(client->connection_state != EMQTT_SN_CONNECTION_IN_PROGRESS)
     {
         msg = (EMqtt_Sn_Connect_Msg *)d;
         msg->header.msg_type = EMQTT_SN_CONNECT;
@@ -560,7 +560,7 @@ static void emqtt_sn_client_register(EMqtt_Sn_Client *client, const char *topic_
     publisher->data = data;
     publisher->msg_id = msg->msg_id;
     publisher->suback_received_cb = suback_received_cb;
-    publisher->register_state = REGISTER_IN_PROGRESS;
+    publisher->register_state = EMQTT_SN_REGISTER_IN_PROGRESS;
     client->publishers = eina_list_append(client->publishers, publisher);
 
     _mqtt_send_data(client->fd, msg, msg->header.len);
@@ -582,7 +582,7 @@ void emqtt_sn_client_send_publish(EMqtt_Sn_Client *client, const char *topic_nam
 
     EINA_LIST_FOREACH(client->publishers, l, publisher)
     {
-        if (!strcmp(topic_name, publisher->topic->name) && publisher->register_state == REGISTER_ACCEPTED){
+        if (!strcmp(topic_name, publisher->topic->name) && publisher->register_state == EMQTT_SN_REGISTER_ACCEPTED){
             /* printf("PUBLISH ID: %d\t name: %s\n",publisher->topic->id, publisher->topic->name); */
             msg = (EMqtt_Sn_Publish_Msg *)d;
             msg->header.msg_type = EMQTT_SN_PUBLISH;
