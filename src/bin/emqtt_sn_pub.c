@@ -65,7 +65,7 @@ _mqtt_publish_timer_cb(void *data)
     return ECORE_CALLBACK_RENEW;
 }
 
-void _connect_received_cb(void *data, EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state)
+void _connect_received_cb(void *data, EMqtt_Sn_Client *client, EMQTT_SN_CONNECTION_STATE connection_state)
 {
     if (connection_state == CONNECTION_ACCEPTED)
     {

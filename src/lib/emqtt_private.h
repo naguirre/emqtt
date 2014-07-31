@@ -133,10 +133,10 @@ struct _EMqtt_Sn_Client
     Eina_List *publishers;
     Eina_List *topics;
     uint16_t last_msg_id;
-    EMqtt_Sn_CONNECTION_STATE connection_state;
+    EMQTT_SN_CONNECTION_STATE connection_state;
     int connection_retry;
     Ecore_Timer *timeout;
-    void (*connected_received_cb) (void *data, EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state);
+    void (*connected_received_cb) (void *data, EMqtt_Sn_Client *client, EMQTT_SN_CONNECTION_STATE connection_state);
     void *data;
 };
 
@@ -173,7 +173,7 @@ struct _EMqtt_Sn_Publisher
 {
     EMqtt_Sn_Topic *topic;
     uint16_t msg_id;
-    EMqtt_Sn_REGISTER_STATE register_state;
+    EMQTT_SN_REGISTER_STATE register_state;
     void (*suback_received_cb) (void *data, EMqtt_Sn_Client *client);
     void *data;
 };

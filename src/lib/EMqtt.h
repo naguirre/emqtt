@@ -60,22 +60,23 @@ extern "C" {
 
 #define EMQTT_MAX_RETRY 6
 #define EMQTT_TIMEOUT_CONNECT 5
-enum _EMqtt_Sn_CONNECTION_STATE
+
+enum _EMQTT_SN_CONNECTION_STATE
 {
     CONNECTION_CLOSED,
     CONNECTION_ACCEPTED,
     CONNECTION_IN_PROGRESS,
     CONNECTION_ERROR
 };
-typedef enum _EMqtt_Sn_CONNECTION_STATE EMqtt_Sn_CONNECTION_STATE;
+typedef enum _EMQTT_SN_CONNECTION_STATE EMQTT_SN_CONNECTION_STATE;
 
-enum _EMqtt_Sn_REGISTER_STATE
+enum _EMQTT_SN_REGISTER_STATE
 {
     REGISTER_ACCEPTED,
     REGISTER_IN_PROGRESS,
     REGISTER_ERROR
 };
-typedef enum _EMqtt_Sn_REGISTER_STATE EMqtt_Sn_REGISTER_STATE;
+typedef enum _EMQTT_SN_REGISTER_STATE EMQTT_SN_REGISTER_STATE;
 
 enum _EMQTT_SN_ERROR_TYPE
 {
@@ -86,7 +87,7 @@ typedef enum _EMQTT_SN_ERROR_TYPE EMQTT_SN_ERROR_TYPE;
 typedef struct _EMqtt_Sn_Server EMqtt_Sn_Server;
 typedef struct _EMqtt_Sn_Client EMqtt_Sn_Client;
 
-typedef void (*EMqtt_Sn_Client_Connect_Cb) (void *data, EMqtt_Sn_Client *client, EMqtt_Sn_CONNECTION_STATE connection_state);
+typedef void (*EMqtt_Sn_Client_Connect_Cb) (void *data, EMqtt_Sn_Client *client, EMQTT_SN_CONNECTION_STATE connection_state);
 typedef void (*EMqtt_Sn_Client_Topic_Received_Cb) (void *data, EMqtt_Sn_Client *client, const char *topic, const char *value);
 typedef void (*EMqtt_Sn_Client_Subscribe_Error_Cb) (void *data, EMQTT_SN_ERROR_TYPE state);
 typedef void (*EMqtt_Sn_Client_Suback_Received_Cb) (void *data, EMqtt_Sn_Client *client);
