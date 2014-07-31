@@ -283,6 +283,12 @@ _mqtt_sn_pingreq_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
 {
     EMqtt_Sn_Pingresp_Msg resp;
 
+    if (!cl)
+    {
+        ERR("Error : this client is not connected");
+        return;
+    }
+
     resp.header.len = 2;
     resp.header.msg_type = EMQTT_SN_PINGRESP;
 
@@ -293,6 +299,12 @@ static void
 _mqtt_sn_disconnect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Connected_Client *cl)
 {
     EMqtt_Sn_Disconnect_Msg resp;
+
+    if (!cl)
+    {
+        ERR("Error : this client is not connected");
+        return;
+    }
 
     resp.header.len = 2;
     resp.header.msg_type = EMQTT_SN_DISCONNECT;
