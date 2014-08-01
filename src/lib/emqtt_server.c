@@ -125,6 +125,7 @@ _mqtt_sn_connect_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
         {
             emqtt_topic_free(topic);
         }
+	cl->topics = NULL;
     }
 
     if (!cl)
@@ -240,7 +241,6 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
                 DBG("Test topic : %s | %s", t->name, topic_name);
                 if (emqtt_topic_matches(t->name , topic_name))
                 {
-                    EMqtt_Sn_Subscriber *subscriber;
                     EMqtt_Sn_Register_Msg *reg_msg;
                     char d[256];
                     DBG("Topic matches");
@@ -248,13 +248,6 @@ _mqtt_sn_publish_msg(EMqtt_Sn_Server *srv, Mqtt_Client_Data *cdata, EMqtt_Sn_Con
                     topic = emqtt_topic_new(topic_name, &con_cli->last_topic);
                     con_cli->topics = eina_list_append(con_cli->topics, topic);
                     topic->subscribed = EINA_TRUE;
-
-                    subscriber = calloc(1, sizeof(EMqtt_Sn_Subscriber));
-                    subscriber->topic = topic;
-                    //subscriber->topic_received_cb = _mqtt_topic_regack_cb;
-                    //subscriber->data = cli;
-                    con_cli->subscribers = eina_list_append(con_cli->subscribers,
-                                                            subscriber);
 
                     reg_msg = (EMqtt_Sn_Register_Msg*)d;
                     reg_msg->header.len = sizeof(EMqtt_Sn_Register_Msg) + strlen(topic_name);

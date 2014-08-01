@@ -145,7 +145,6 @@ struct _EMqtt_Sn_Connected_Client
     const char *client_id;
     struct sockaddr_storage addr;
     int fd;
-    Eina_List *subscribers;
     Eina_List *topics;
     uint16_t last_topic;
 };
