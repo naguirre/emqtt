@@ -27,7 +27,7 @@ static Ecore_Timer *publish_timer = NULL;
 static char *topic = NULL;
 static char *value = NULL;
 static char *host = NULL;
-static int port;
+static int port = 1883;
 
 static const Ecore_Getopt optdesc = {
     "emqtt_sn_pub",
@@ -85,11 +85,6 @@ main(int argc, char **argv)
 {
     Eina_Bool quit = EINA_FALSE;
     EMqtt_Sn_Client *client;
-
-    eina_init();
-    ecore_init();
-    emqtt_init();
-
     Ecore_Getopt_Value values[] = {
         ECORE_GETOPT_VALUE_STR(host),
         ECORE_GETOPT_VALUE_INT(port),
@@ -102,6 +97,9 @@ main(int argc, char **argv)
         ECORE_GETOPT_VALUE_NONE
     };
 
+    eina_init();
+    ecore_init();
+    emqtt_init();
 
     if (ecore_getopt_parse(&optdesc, values, argc, argv) < 0)
     {
